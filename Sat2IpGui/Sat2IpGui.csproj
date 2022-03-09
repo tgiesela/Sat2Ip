@@ -35,6 +35,9 @@
   <ItemGroup>
     <ProjectReference Include="..\ClientSocket\ClientSockets.csproj" />
     <ProjectReference Include="..\Descrambler\Descrambler.csproj" />
+    <ProjectReference Include="..\FFDecsa\FFDecsa.vcxproj">
+      <Private>True</Private>
+    </ProjectReference>
     <ProjectReference Include="..\Protocol\Protocol.csproj" />
     <ProjectReference Include="..\Scanner\Scanner.csproj" />
     <ProjectReference Include="..\Utils\Utils.csproj" />
@@ -78,6 +81,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>App.settings</DependentUpon>
     </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Update="log4.config">
@@ -86,6 +94,10 @@
     <None Update="Properties\App.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>App.Designer.cs</LastGenOutput>
+    </None>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
 </Project>

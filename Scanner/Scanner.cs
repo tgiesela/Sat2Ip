@@ -102,7 +102,7 @@ namespace Sat2Ip
             expectNIT = false;
             scancomplete = false; 
             pids = new List<Channel>();
-            payloads = new Payloads();
+            payloads = new Payloads(processpayload);
 
             log.DebugFormat("Scanning transponder: {0}", transponder.frequency);
             _transponder = transponder;
@@ -243,6 +243,7 @@ namespace Sat2Ip
                 payloadpart = packet.getPayload(lenprocessed, 188);
                 mp2Packet = new Mpeg2Packet(payloadpart);
                 payload = payloads.storePayload(mp2Packet);
+                /*
                 if (payload != null && payload.isComplete())
                 {
                     if (payload.payloadlength > 0)
@@ -251,6 +252,7 @@ namespace Sat2Ip
                     }
                     payload.clear();
                 }
+                */
                 lenprocessed += 188;
             }
 
@@ -601,35 +603,42 @@ namespace Sat2Ip
             log.Debug("NIT received");
             if (!netw.nitcomplete && netw.processsection(hdr.sectionnr, hdr.lastsectionnr))
             {
-                short network_descriptors_length = (short)(((v[7] & 0x0F) << 8) | (v[8] & 0xff));
+                try
+                {
+                    short network_descriptors_length = (short)(((v[7] & 0x0F) << 8) | (v[8] & 0xff));
 
-                int offset = 9; /* points to network descriptors */
-                if (msg.Length < (offset + network_descriptors_length))
-                {
-                    log.Debug("Message too short!");
-                    return;
-                }
-                int bytesprocessed = 0;
-                while (bytesprocessed < (network_descriptors_length))
-                {
-                    bytesprocessed += processnetworkdescriptor(v, offset + bytesprocessed, netw);
-                }
-                offset = offset + bytesprocessed;
-                short transport_stream_loop_length = (short)(((v[offset + 0] & 0x0F) << 8) | (v[offset + 1] & 0xff));
-                bytesprocessed = 0;
-                offset += 2;
-                if (msg.Length < (offset + transport_stream_loop_length))
-                {
-                    log.Debug("Message too short!");
-                    return ;
-                }
-                while (bytesprocessed < transport_stream_loop_length)
-                {
-                    bytesprocessed += processtransportstream(v, offset + bytesprocessed);
-                }
+                    int offset = 9; /* points to network descriptors */
+                    if (msg.Length < (offset + network_descriptors_length))
+                    {
+                        log.Debug("Message too short!");
+                        return;
+                    }
+                    int bytesprocessed = 0;
+                    while (bytesprocessed < (network_descriptors_length))
+                    {
+                        bytesprocessed += processnetworkdescriptor(v, offset + bytesprocessed, netw);
+                    }
+                    offset = offset + bytesprocessed;
+                    short transport_stream_loop_length = (short)(((v[offset + 0] & 0x0F) << 8) | (v[offset + 1] & 0xff));
+                    bytesprocessed = 0;
+                    offset += 2;
+                    if (msg.Length < (offset + transport_stream_loop_length))
+                    {
+                        log.Debug("Message too short!");
+                        return;
+                    }
+                    while (bytesprocessed < transport_stream_loop_length)
+                    {
+                        bytesprocessed += processtransportstream(v, offset + bytesprocessed);
+                    }
 
-                log.DebugFormat("Section {0} of NIT processed", hdr.sectionnr);
-                netw.sectionprocessed(hdr.sectionnr);
+                    log.DebugFormat("Section {0} of NIT processed", hdr.sectionnr);
+                    netw.sectionprocessed(hdr.sectionnr);
+                }
+                catch (Exception ex)
+                {
+                    log.Debug("Malformed NIT!! Exception is :" + ex.Message);
+                }
             }
 
             if (netw.nitcomplete && currentnetwork)
@@ -750,7 +759,7 @@ namespace Sat2Ip
                         capid.CA_PID = CA_PID;
                         capid.CA_System_ID = CA_system_ID;
                         capid.Cadescriptor = descriptor;
-                        stream.Capids.Add(capid);
+                        stream.capids.Add(capid);
                     }
                     break;
             }

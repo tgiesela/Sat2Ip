@@ -94,5 +94,29 @@ namespace Sat2IpGui.Properties {
                 this["PortDevice"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10.56.57.155")]
+        public string OscamServer {
+            get {
+                return ((string)(this["OscamServer"]));
+            }
+            set {
+                this["OscamServer"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("9000")]
+        public string OscamPort {
+            get {
+                return ((string)(this["OscamPort"]));
+            }
+            set {
+                this["OscamPort"] = value;
+            }
+        }
     }
 }

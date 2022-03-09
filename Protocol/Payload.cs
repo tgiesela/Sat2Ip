@@ -12,11 +12,13 @@ namespace Protocol
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
                             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        internal int maxpayloadlength = 128*1024;
+        internal int maxpayloadlength = 256*1024;
         public byte[] data { get; set;  }
         public int payloadlength { get; set; } = 0;
         public int payloadpid { get; set; } = 0;
         public int expectedlength { get; set; }
+        public bool scambled { get; internal set; }
+
         internal enum packettype
         {
             pes,
@@ -102,6 +104,7 @@ namespace Protocol
                 }
                 if (packet.scramblingcontrol == 0)
                 {
+                    payload.scambled = false;
                     int bytestocopy;
                     if (packet.payload[0] == 0 && packet.payload[1] == 0 && packet.payload[2] == 1) /* PES header */
                     {
@@ -111,6 +114,7 @@ namespace Protocol
                         bytestocopy = 188 - packet.headerlen;
                         if ((payload.payloadlength + bytestocopy) > payload.maxpayloadlength)
                         {
+                            log.DebugFormat("Payload does not fit in buffer ({0} + {1} > {2}.", payload.payloadlength, bytestocopy, payload.maxpayloadlength);
                             throw new Exception("Payload does not fit in buffer.");
                         }
                         System.Buffer.BlockCopy(packet.payload, 0, payload.data, payload.payloadlength, bytestocopy);
@@ -136,8 +140,12 @@ namespace Protocol
                         }
                         payload.expectedlength = Utils.Utils.toShort(packet.payload[pointer+2], packet.payload[pointer+3]) & 0x0FFF;
                         bytestocopy = 188 - packet.headerlen - pointer;
+                        if (bytestocopy != packet.payloadlength)
+                            log.DebugFormat("Bytestocopy2: {0}, Payloadlength: {1}", bytestocopy, packet.payloadlength);
+
                         if ((payload.payloadlength + bytestocopy) > payload.maxpayloadlength)
                         {
+                            log.DebugFormat("Payload does not fit in buffer ({0} + {1} > {2}.", payload.payloadlength, packet.payloadlength, payload.maxpayloadlength);
                             throw new Exception("Payload does not fit in buffer.");
                         }
                         System.Buffer.BlockCopy(packet.payload, pointer, payload.data, payload.payloadlength, bytestocopy);
@@ -150,15 +158,20 @@ namespace Protocol
                     }
 
                 }
+                else
+                {
+                    payload.scambled = true;
+                }
             }
             else
             {
-                if (payload != null)
+                if (payload != null && payload.scambled == false)
                 {
                     //log.DebugFormat("Append payload for PID {0}: , with length: {1}, expected {2}, current {3}", 
                     //    packet.pid, 188 - packet.headerlen, payload.expectedlength, payload.payloadlength);
-                    if ((payload.payloadlength + (packet.payload.Length)) > payload.maxpayloadlength)
+                    if ((payload.payloadlength + packet.payloadlength) > payload.maxpayloadlength)
                     {
+                        log.DebugFormat("Payload does not fit in buffer ({0} + {1} > {2}.", payload.payloadlength, packet.payloadlength, payload.maxpayloadlength);
                         throw new Exception("Payload does not fit in buffer.");
                     }
                     if (payload.payloadlength == 0)
@@ -182,6 +195,7 @@ namespace Protocol
 
         private void invokeprocesspayload(Payload payload)
         {
+            //log.DebugFormat("Processing payload for pid {0} with length: {1}",payload.payloadpid, payload.payloadlength);
             if (cb_processpayload != null)
                 cb_processpayload(payload);
             payload.clear();

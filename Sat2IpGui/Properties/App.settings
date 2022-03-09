@@ -20,5 +20,11 @@
     <Setting Name="PortDevice" Type="System.String" Scope="User">
       <Value Profile="(Default)">554</Value>
     </Setting>
+    <Setting Name="OscamServer" Type="System.String" Scope="User">
+      <Value Profile="(Default)">10.56.57.155</Value>
+    </Setting>
+    <Setting Name="OscamPort" Type="System.String" Scope="User">
+      <Value Profile="(Default)">9000</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -26,80 +26,15 @@ namespace Sat2Ip
         };
         private _descriptorlevel _CAlevel;
 
-        public int Programpid
-        {
-            get
-            {
-                return _programpid;
-            }
-
-            set
-            {
-                _programpid = value;
-            }
-        }
-        public List<Sat2Ip.Stream> Pmt
-        {
-            get
-            {
-                return _pmt;
-            }
-
-            set
-            {
-                _pmt = value;
-            }
-        }
-        public int Programnumber
-        {
-            get
-            {
-                return _programnumber;
-            }
-
-            set
-            {
-                _programnumber = value;
-            }
-        }
-        public bool Pmtpresent
-        {
-            get
-            {
-                return _pmtpresent;
-            }
-
-            set
-            {
-                _pmtpresent = value;
-            }
-        }
-        public string Providername
-        {
-            get
-            {
-                return _providername;
-            }
-
-            set
-            {
-                _providername = value;
-            }
-        }
+        public int Programpid { get { return _programpid; } set { _programpid = value; } }
+        public List<Sat2Ip.Stream> Pmt { get { return _pmt; } set { _pmt = value; } }
+        public int Programnumber { get { return _programnumber; } set { _programnumber = value; } }
+        public bool Pmtpresent { get { return _pmtpresent; } set { _pmtpresent = value; } }
+        public string Providername { get { return _providername; } set { _providername = value; } }
         public string Servicename { get; set; }
-        public int Servicetype
-        {   get;
-            set;
-        }
-        public _descriptorlevel CAlevel
-        {
-            get { return _CAlevel; } set { _CAlevel = value; }
-        }
-        public List<capid> Capids
-        {
-            get { return _capids; }
-        }
-
+        public int Servicetype {   get; set; }
+        public _descriptorlevel CAlevel { get { return _CAlevel; } set { _CAlevel = value; } }
+        public List<capid> Capids { get { return _capids; } set { _capids = value; } }
         public Transponder transponder { get { return _transponder; } set { _transponder = value; } }
 
         public bool isRadioService()
@@ -140,7 +75,7 @@ namespace Sat2Ip
             foreach (Sat2Ip.Stream stream in _pmt)
             {
                 pids.Add(stream.Elementary_pid);
-                foreach (capid p in stream.Capids)
+                foreach (capid p in stream.capids)
                 {
                     if (!pids.Contains(p.CA_PID))
                         pids.Add(p.CA_PID);

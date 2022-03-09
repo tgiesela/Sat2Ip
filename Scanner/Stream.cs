@@ -12,31 +12,9 @@ namespace Sat2Ip
         int _stream_type;
         int _elementary_pid;
         private List<capid> _capids;
-
-        public int Stream_type
-        {
-            get
-            {
-                return _stream_type;
-            }
-
-            set
-            {
-                _stream_type = value;
-            }
-        }
-        public int Elementary_pid
-        {
-            get
-            {
-                return _elementary_pid;
-            }
-
-            set
-            {
-                _elementary_pid = value;
-            }
-        }
+        public List<capid> capids { get { return _capids; } set { _capids = value; } }
+        public int Stream_type { get { return _stream_type; } set { _stream_type = value; } }
+        public int Elementary_pid { get { return _elementary_pid; } set { _elementary_pid = value; } }
         public String Stream_type_description
         {
             get
@@ -63,14 +41,6 @@ namespace Sat2Ip
                         else
                             return "User Private";
                 }
-            }
-        }
-
-        public List<capid> Capids
-        {
-            get
-            {
-                return _capids;
             }
         }
 

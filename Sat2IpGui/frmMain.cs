@@ -127,7 +127,10 @@ namespace Sat2IpGui
                 {
                     if (descrambler == null)
                     {
-                        descrambler = new Descrambler.DescramblerNew(rtsp.Startport, pid, rtsp.Startport + 2);
+                        descrambler = new Descrambler.DescramblerNew(rtsp.Startport, rtsp.Startport + 2);
+                        int oscamport;
+                        Int32.TryParse(Properties.App.Default.OscamPort, out oscamport);
+                        descrambler.setOscam(Properties.App.Default.OscamServer, oscamport);
                     }
                     else
                     {
@@ -135,6 +138,7 @@ namespace Sat2IpGui
                         rtsp.commandTeardown("");
                         System.Threading.Thread.Sleep(1000);
                     }
+                    descrambler.setChannel(pid);
                     rtsp.commandSetup(stream);
                 }
                 catch (Exception se)

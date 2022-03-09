@@ -53,61 +53,58 @@ using System.Text;
         private ManualResetEvent receiveDone =
             new ManualResetEvent(false);
 
-        public event EventHandler<DatareceivedArgs> dataReceived;
+        public event EventHandler<DatareceivedArgs> ReceiveComplete;
         public event EventHandler<ConnectArgs> ConnectComplete;
         // The response from the remote device.
         private String response = String.Empty;
-        private Socket client = null;
-        private String _hostaddress;
-        private IPHostEntry _ipHostInfo;
-        private IPAddress _ipAddress;
-        private IPEndPoint _remoteEP;
-        private int _port;
-        protected void OnConnectComplete(ConnectArgs e)
+        private Socket m_client = null;
+        private String m_hostaddress;
+        private IPHostEntry m_ipHostInfo;
+        private IPAddress m_ipAddress;
+        private IPEndPoint m_remoteEP;
+        private int m_port;
+        public AsyncClientSocket(String hostaddress, int port)
         {
-            EventHandler<ConnectArgs> handler = ConnectComplete;
-            if (handler != null)
+            m_hostaddress = hostaddress;
+            m_port = port;
+            if (!IPAddress.TryParse(m_hostaddress, out m_ipAddress))
             {
-                handler(this, e);
+                m_ipHostInfo = Dns.GetHostEntry(m_hostaddress);
+                m_ipAddress = m_ipHostInfo.AddressList[0];
             }
         }
-        protected void OnDataReceived(DatareceivedArgs e)
-        {
-            EventHandler<DatareceivedArgs> handler = dataReceived;
-            if (handler != null)
-            {
-                handler(this, e);
-            }
-        }
-        public AsyncClientSocket()
-        {
-        }
-        public void StartClient(String hostaddress, int port)
+        public void StartNowait()
         {
             // Connect to a remote device.
             try
             {
-                _hostaddress = hostaddress;
-                _port = port;
-                if (!IPAddress.TryParse(hostaddress, out _ipAddress))
-                {
-                    _ipHostInfo = Dns.GetHostEntry(_hostaddress);
-                    _ipAddress = _ipHostInfo.AddressList[0];
-                }
-                _remoteEP = new IPEndPoint(_ipAddress, port);
-
-                // Create a TCP/IP socket.
-                client = new Socket(AddressFamily.InterNetwork,
-                    SocketType.Stream, ProtocolType.Tcp);
-
-                // Connect to the remote endpoint.
-                client.BeginConnect(_remoteEP,
-                    new AsyncCallback(ConnectCallback), client);
+                m_client = new Socket(AddressFamily.InterNetwork,SocketType.Stream, ProtocolType.Tcp);
+                m_remoteEP = new IPEndPoint(m_ipAddress, m_port);
+                m_client.BeginConnect(m_remoteEP,
+                    new AsyncCallback(ConnectCallback), m_client);
                 connectDone.WaitOne();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                m_client.Shutdown(SocketShutdown.Both);
+                log.Debug("Socket connectNW failed: " + e.Message);
+            }
+
+        }
+
+        public void Start()
+        {
+            // Connect to a remote device.
+            try
+            {
+                m_client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                m_remoteEP = new IPEndPoint(m_ipAddress, m_port);
+                m_client.Connect(m_remoteEP);
+            }
+            catch (Exception e)
+            {
+                //m_client.Shutdown(SocketShutdown.Both);
+                log.Debug("Socket connect failed: " + e.Message);
             }
         }
         private void ConnectCallback(IAsyncResult ar)
@@ -115,12 +112,12 @@ using System.Text;
             try
             {
                 // Retrieve the socket from the state object.
-                //Socket client = (Socket)ar.AsyncState;
+                Socket client = (Socket)ar.AsyncState;
 
                 // Complete the connection.
                 client.EndConnect(ar);
 
-                // Signal that the connection has been made.
+                // Signal to the creator that the connection has been made.
                 ConnectComplete(this, new ConnectArgs (client.Connected));
                 connectDone.Set();
             }
@@ -133,33 +130,44 @@ using System.Text;
                 }
             }
         }
+        private void checkconnected()
+        {
+            if (!m_client.Connected)
+            {
+                log.Debug("Receive requested, but socket not connected");
+                throw new Exception("Socket not connected");
+
+            }
+        }
         public void Receive()
         {
+            checkconnected();
             try
             {
                 // Create the state object.
                 StateObject state = new StateObject();
-                state.workSocket = client;
+                state.workSocket = m_client;
+                state.totalbytesread = 0;
 
                 // Begin receiving the data from the remote device.
-                client.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
+                m_client.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
                     new AsyncCallback(ReceiveCallback), state);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                log.Debug("Receive failed: " + e.Message);
             }
         }
         public void Disconnect()
         {
             try
             {
-                client.Disconnect(false);
-                client.Shutdown(SocketShutdown.Both);
+                m_client.Disconnect(true);
+                m_client.Close();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                log.Debug("Disconnected failed: " + e.Message);
             }
         }
         private void ReceiveCallback(IAsyncResult ar)
@@ -169,47 +177,86 @@ using System.Text;
                 // Retrieve the state object and the client socket 
                 // from the asynchronous state object.
                 StateObject state = (StateObject)ar.AsyncState;
-                //Socket client = state.workSocket;
+                Socket client = state.workSocket;
 
                 // Read data from the remote device.
                 int bytesRead = client.EndReceive(ar);
                 state.totalbytesread = bytesRead;
                 if (bytesRead > 0)
                 {
-                    // Signal that all bytes have been received.
-                    dataReceived(this, new DatareceivedArgs(state.buffer, state.totalbytesread ));
+                    log.Debug("Received data: " + bytesRead);
+                    Utils.Utils.DumpBytes(state.buffer, bytesRead);
+                    // Signal to the creator that all bytes have been received.
+                    ReceiveComplete(this, new DatareceivedArgs(state.buffer, state.totalbytesread ));
                     receiveDone.Set();
+                }
+                else
+                {
+                    log.Debug("Socket is being closed");
+                    client.Close();
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                log.Debug("EndReceive failed: " + e.Message);
             }
         }
         public void Send(String data)
         {
+            checkconnected();
             // Convert the string data to byte data using ASCII encoding.
             byte[] byteData = Encoding.ASCII.GetBytes(data);
             Send(byteData);
         }
         public void Send(byte[] byteData)
         {
+            checkconnected();
             // Begin sending the data to the remote device.
-            client.BeginSend(byteData, 0, byteData.Length, 0,
-                new AsyncCallback(SendCallback), client);
+            try
+            {
+                m_client.BeginSend(byteData, 0, byteData.Length, 0,
+                    new AsyncCallback(SendCallback), m_client);
+            }
+            catch (Exception e)
+            {
+                log.Debug("BeginSend failed: " + e.Message);
+            }
         }
         public void Send(byte[] byteData, int length)
         {
+            checkconnected();
             // Begin sending the data to the remote device.
-            client.BeginSend(byteData, 0, length, 0,
-                new AsyncCallback(SendCallback), client);
+            try
+            {
+                m_client.BeginSend(byteData, 0, length, 0,
+                    new AsyncCallback(SendCallback), m_client);
+            }
+            catch (Exception e)
+            {
+                log.Debug("BeginSend failed: " + e.Message);
+            }
         }
+        public void SendWait(byte[] stopdata, int v)
+        {
+            checkconnected();
+            try
+            {
+                SocketFlags socketFlags = default;
+                m_client.Send(stopdata, 0, v, socketFlags);
+            }
+            catch (Exception e)
+            {
+                log.Debug("Send failed: " + e.Message);
+            }
+        }
+
+
         private void SendCallback(IAsyncResult ar)
         {
             try
             {
                 // Retrieve the socket from the state object.
-                //Socket client = (Socket)ar.AsyncState;
+                Socket client = (Socket)ar.AsyncState;
 
                 // Complete sending the data to the remote device.
                 int bytesSent = client.EndSend(ar);
@@ -219,7 +266,7 @@ using System.Text;
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                log.Debug("EndSend failed: " + e.Message);
             }
         }
     }

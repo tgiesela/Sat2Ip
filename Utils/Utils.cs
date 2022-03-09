@@ -25,6 +25,14 @@ namespace Utils
         {
             return (ushort)((ushort)(byte1 << 8) + (ushort)byte2);
         }
+        public static byte[] fromShort(ushort val)
+        {
+            byte[] bArr = new byte[2];
+            bArr = BitConverter.GetBytes(val);
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(bArr);
+            return bArr;
+        }
         public static int toInt(byte v1, byte v2, byte v3, byte v4)
         {
             return ((int)(v1 << 24) + (int)(v2 << 16) + (int)(v3 << 8) + (int)v4);

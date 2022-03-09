@@ -1,6 +1,7 @@
 ﻿using Sat2Ip;
 using Circularbuffer;
 using Protocol;
+using Oscam;
 
 namespace Descrambler
 {
@@ -30,34 +31,37 @@ namespace Descrambler
             senderreport = 200
         };
 
-        private Channel _channel;
-        private int _port;
-        private int _outputport;
+        private Channel m_channel = null;
+        private int m_port;
+        private int m_outputport;
         private RtpReader reader;
         private Thread? inputthread;
-        private Circularqueue _inputpackets;
-        private Circularqueue _decryptpackets;
-        private Circularqueue _outputpackets;
+        private Circularqueue m_inputpackets;
+        private Circularqueue m_decryptpackets;
+        private Circularqueue m_outputpackets;
         private Thread? outputthread;
         private bool reading;
         private bool writing;
+        private Oscamserver? oscam;
 
-        public DescramblerNew(int port, Channel channel, int outputport)
+        public DescramblerNew(int port, int outputport)
         {
-            _channel = channel;
-            _port = port;
-            _outputport = outputport;
-            log.Debug("Start reader on port: " + _port);
-            reader = new RtpReader(_port);
+            m_port = port;
+            m_outputport = outputport;
+            log.Debug("Start reader on port: " + m_port);
+            reader = new RtpReader(m_port);
             int optimalsize = 256;
-            _inputpackets = new Circularqueue(optimalsize);
-            _decryptpackets = new Circularqueue(7 * 16 * optimalsize);
-            _outputpackets = new Circularqueue(7 * 8 * optimalsize);
+            m_inputpackets = new Circularqueue(optimalsize);
+            m_decryptpackets = new Circularqueue(7 * 16 * optimalsize);
+            m_outputpackets = new Circularqueue(7 * 8 * optimalsize);
             payloads = new();
         }
         public void processpayload(Payload payload)
         {
             //log.DebugFormat("Process payload PID {0}. Length: {1}, expected length {2}",payload.payloadpid,payload.payloadlength, payload.expectedlength);
+            if (oscam != null)
+                oscam.filterpacket(payload);
+
         }
         public void play()
         {
@@ -70,8 +74,14 @@ namespace Descrambler
 
         public void stop()
         {
+            if (!reading && !writing) return; /* Already stopped */
             reading = false;
             writing = false;
+            if (oscam != null)
+            {
+                oscam.Stopdemux();
+                oscam.Stop();
+            }
         }
         private async void ReadData()
         {/*
@@ -109,11 +119,24 @@ namespace Descrambler
                 payloadpart = packet.getPayload(lenprocessed, 188);
                 mp2Packet = new Mpeg2Packet(payloadpart);
                 payload = payloads.storePayload(mp2Packet);
-                _inputpackets.add(mp2Packet.buffer);
-                /* Payload processing is done via callback function */
+                m_inputpackets.add(decryptpacket(mp2Packet));
+                //m_inputpackets.add(mp2Packet.buffer);
+                /* Payload processing is done via callback function, n/a for descrambler */
                 lenprocessed += 188;
             }
 
+        }
+        private byte[] decryptpacket(Mpeg2Packet packet)
+        {
+            if (packet.scramblingcontrol == 00)
+                return packet.buffer;
+            else /* decryption required*/
+            {
+                if (oscam != null)
+                    return oscam.decryptpacket(packet.buffer);
+                else
+                    return packet.buffer;
+            }
         }
         private void WriteData()
         {
@@ -128,11 +151,11 @@ namespace Descrambler
             DateTime start = DateTime.Now;
             long secondselapsed;
 
-            RtpWriter writer = new RtpWriter(_outputport);
+            RtpWriter writer = new RtpWriter(m_outputport);
             writing = true;
             while (writing)
             {
-                if (_inputpackets.getBufferedsize() < 7 * 188)
+                if (m_inputpackets.getBufferedsize() < 7 * 188)
                 {
                     Thread.Sleep(1);
                 }
@@ -141,7 +164,7 @@ namespace Descrambler
                     int outputlen = 0;
                     while (outputlen < 7 * 188)
                     {
-                        _inputpackets.get(out buf);
+                        m_inputpackets.get(out buf);
                         if (buf != null)
                         {
                             Buffer.BlockCopy(buf, 0, rtpPacket, outputlen, 188);
@@ -166,6 +189,19 @@ namespace Descrambler
                 }
             }
             log.Debug("Writing stopped");
+        }
+
+        public void setOscam(string oscamServer, int oscamPort)
+        {
+            oscam = new Oscamserver(oscamServer, oscamPort);
+            if (m_channel != null)
+                oscam.Start(m_channel);
+        }
+        public void setChannel(Channel channel)
+        {
+            m_channel = channel;
+            if (oscam != null)
+                oscam.Start(m_channel);
         }
     }
 

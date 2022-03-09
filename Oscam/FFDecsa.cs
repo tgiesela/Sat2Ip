@@ -4,9 +4,9 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using static Descrambler.DescramblerNew;
+using static Oscam.Definitions;
 
-namespace Descrambler
+namespace Oscam
 {
     public class FFDecsa
     {
@@ -18,7 +18,7 @@ namespace Descrambler
         // You should try to call decrypt_packets with more packets than the number
         // returned here for performance reasons (use get_suggested_cluster_size to know
         // how many).
-        [DllImport(@"E:\Sat2IP\Projects\Sat2IpClient\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern int get_internal_parallelism();
@@ -29,36 +29,36 @@ namespace Descrambler
         // Passing less packets could slow down the decryption.
         // Passing more packets is never bad (if you don't spend a lot of time building
         // the list).
-        [DllImport(@"E:\Sat2IP\Projects\Sat2IpClient\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern int get_suggested_cluster_size();
 
         // -- alloc & free the key structure
-        [DllImport(@"E:\Sat2IP\Projects\Sat2IpClient\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern IntPtr get_key_struct();
 
-        [DllImport(@"E:\Sat2IP\Projects\Sat2IpClient\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void free_key_struct(IntPtr keys);
 
         // -- set control words, 8 bytes each
-        [DllImport(@"E:\Sat2IP\Projects\Sat2IpClient\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void set_control_words(IntPtr keys, IntPtr even, IntPtr odd);
 
         // -- set even control word, 8 bytes
-        [DllImport(@"E:\Sat2IP\Projects\Sat2IpClient\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void set_even_control_word([In] IntPtr keys, byte[] even);
 
         // -- set odd control word, 8 bytes
-        [DllImport(@"E:\Sat2IP\Projects\Sat2IpClient\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void set_odd_control_word([In] IntPtr keys, byte[] odd);
@@ -69,12 +69,12 @@ namespace Descrambler
         // -- decrypt many TS packets
         // This interface is a bit complicated because it is designed for maximum speed.
         // Please read doc/how_to_use.txt.
-        [DllImport(@"E:\Sat2IP\Projects\Sat2IpClient\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         //static extern int decrypt_packets(IntPtr keys, IntPtr[] cluster);
         static extern int decrypt_packets(IntPtr keys, [In][Out] string[] cluster);
-        [DllImport(@"E:\Sat2IP\Projects\Sat2IpClient\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,EntryPoint = "decrypt_packets",
             CallingConvention = CallingConvention.Cdecl)]
         //static extern int decrypt_packets(IntPtr keys, IntPtr[] cluster);
@@ -152,17 +152,17 @@ namespace Descrambler
         }
         public void DecryptPackets(byte[] cluster)
         {
-            byte[] managedArray = new byte[512];
-            Marshal.Copy(keys[0], managedArray, 0, 512);
-            string[] scluster = new string[10];
-            scluster[0] = "AAAAAAAAAA";
-            scluster[1] = "FFFFFFFFFF";
+//            byte[] managedArray = new byte[512];
+//            Marshal.Copy(keys[0], managedArray, 0, 512);
+//            string[] scluster = new string[10];
+//            scluster[0] = "AAAAAAAAAA";
+//            scluster[1] = "FFFFFFFFFF";
             IntPtr[] pcluster = new IntPtr[10];
             pcluster[0] = Marshal.UnsafeAddrOfPinnedArrayElement(cluster, 0);
             pcluster[1] = Marshal.UnsafeAddrOfPinnedArrayElement(cluster, 188);
             pcluster[2] = IntPtr.Zero;
             pcluster[3] = IntPtr.Zero;
-            decrypt_packets(keys[0], scluster);
+ //           decrypt_packets(keys[0], scluster);
             decrypt_packetsbyte(keys[0], pcluster);
         }
     }

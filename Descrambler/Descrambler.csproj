@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ClientSocket\ClientSockets.csproj" />
+    <ProjectReference Include="..\Oscam\Oscam.csproj" />
     <ProjectReference Include="..\Protocol\Protocol.csproj" />
     <ProjectReference Include="..\Scanner\Scanner.csproj" />
     <ProjectReference Include="..\ServerSockets\ServerSockets.csproj" />

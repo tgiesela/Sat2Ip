@@ -9,6 +9,7 @@ namespace Sat2Ip
 {
     public class Mpeg2Packet
     {
+        public int payloadlength { get; set; }
         public byte[] buffer { get; }
         public int transporterror { get; private set; }
         public int payloadstartindicator { get; internal set; }
@@ -72,6 +73,7 @@ namespace Sat2Ip
                 }
                 offset += headerlen;
                 Array.Copy(buffer, offset, payload,0, (188 - offset));
+                payloadlength = 188 - offset;
             }
         }
         private int processAdaptation(byte[] v, int offset)

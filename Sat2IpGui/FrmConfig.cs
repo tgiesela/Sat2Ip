@@ -25,6 +25,8 @@ namespace Sat2IpGui
             cbLNB2.Checked = !Properties.App.Default.LNB2.Equals("");
             cbLNB3.Checked = !Properties.App.Default.LNB3.Equals("");
             cbLNB4.Checked = !Properties.App.Default.LNB4.Equals("");
+            txtOscamserver.Text = Properties.App.Default.OscamServer;
+            txtOscamport.Text = Properties.App.Default.OscamPort;
 
             cmbSatellites1.Enabled = false;
             cmbSatellites2.Enabled = false;
@@ -98,6 +100,8 @@ namespace Sat2IpGui
                 task = DownloadFrequenciesAsync(cmbSatellites4.SelectedIndex);
                 await task;
             }
+            Properties.App.Default.OscamServer = txtOscamserver.Text;
+            Properties.App.Default.OscamPort = txtOscamport.Text;
             Properties.App.Default.Save();
         }
 
