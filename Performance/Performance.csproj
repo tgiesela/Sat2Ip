@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,14 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="log4net" Version="2.0.14" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Descrambler\Descrambler.csproj" />
-    <ProjectReference Include="..\Oscam\Oscam.csproj" />
-    <ProjectReference Include="..\Scanner\Scanner.csproj" />
-    <ProjectReference Include="..\Utils\Utils.csproj" />
+    <ProjectReference Include="..\Protocol\Protocol.csproj" />
+    <ProjectReference Include="..\Sat2IpGui\Sat2IpGui.csproj" />
   </ItemGroup>
 
   <ItemGroup>

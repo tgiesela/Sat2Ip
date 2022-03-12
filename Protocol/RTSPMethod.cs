@@ -151,7 +151,8 @@ namespace Sat2Ip
             String responseString = _socket.ReceiveData();
             if (responseString == null)
             {
-                throw new Exception("No data received");
+                log.Debug("No data received, assume connection lost");
+                return;
             }
             //var responseString = Encoding.UTF8.GetString(responseBytes, 0, responseByteCount);
             var m = RegexStatusLine.Match(responseString);

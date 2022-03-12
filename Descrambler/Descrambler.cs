@@ -5,7 +5,7 @@ using Oscam;
 
 namespace Descrambler
 {
-    public class DescramblerNew
+    public class Descrambler
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
@@ -31,36 +31,34 @@ namespace Descrambler
             senderreport = 200
         };
 
-        private Channel m_channel = null;
+        private Channel? m_channel = null;
         private int m_port;
         private int m_outputport;
         private RtpReader reader;
         private Thread? inputthread;
         private Circularqueue m_inputpackets;
-        private Circularqueue m_decryptpackets;
-        private Circularqueue m_outputpackets;
+        private mp2packetqueue? m_oscampackets;
         private Thread? outputthread;
         private bool reading;
         private bool writing;
-        private Oscamserver? oscam;
+        private Oscamserver? m_oscamserver;
 
-        public DescramblerNew(int port, int outputport)
+        public Descrambler(int port, int outputport)
         {
             m_port = port;
             m_outputport = outputport;
             log.Debug("Start reader on port: " + m_port);
             reader = new RtpReader(m_port);
-            int optimalsize = 256;
+            int optimalsize = 512;
+            m_oscampackets = new mp2packetqueue(optimalsize);
             m_inputpackets = new Circularqueue(optimalsize);
-            m_decryptpackets = new Circularqueue(7 * 16 * optimalsize);
-            m_outputpackets = new Circularqueue(7 * 8 * optimalsize);
             payloads = new();
         }
         public void processpayload(Payload payload)
         {
             //log.DebugFormat("Process payload PID {0}. Length: {1}, expected length {2}",payload.payloadpid,payload.payloadlength, payload.expectedlength);
-            if (oscam != null)
-                oscam.filterpacket(payload);
+            if (m_oscamserver != null)
+                m_oscamserver.filterpacket(payload);
 
         }
         public void play()
@@ -77,22 +75,16 @@ namespace Descrambler
             if (!reading && !writing) return; /* Already stopped */
             reading = false;
             writing = false;
-            if (oscam != null)
+            if (m_oscamserver != null)
             {
-                oscam.Stopdemux();
-                oscam.Stop();
+                m_oscamserver.Stopdemux();
+                m_oscamserver.Stop();
             }
         }
         private async void ReadData()
-        {/*
-            RtpPacket packet = reader.GetRtpPacket();
-            reading = true;
-            while (reading && packet != null)
-            {
-                processMpeg2Packets(packet);
-                packet = reader.GetRtpPacket();
-            }
-            */
+        {
+            //if (m_oscamserver == null) return;
+            //m_oscamserver.Start(m_channel);
             reader.start();
             Task<RtpPacket> task = reader.readAsync();
             RtpPacket packet = await task;
@@ -108,42 +100,28 @@ namespace Descrambler
 
         private void processMpeg2Packets(RtpPacket packet)
         {
+            if (m_inputpackets == null) return;
+            if (m_oscampackets == null) return;
             int lenprocessed = 0;
             Mpeg2Packet mp2Packet;
             byte[] rtpPayload = packet.getPayload();
             byte[] payloadpart;
-            byte[] pesheader = new byte[6];
-            Payload payload;
             while (lenprocessed < rtpPayload.Length)
             {
                 payloadpart = packet.getPayload(lenprocessed, 188);
                 mp2Packet = new Mpeg2Packet(payloadpart);
-                payload = payloads.storePayload(mp2Packet);
-                m_inputpackets.add(decryptpacket(mp2Packet));
+                m_oscampackets.add(mp2Packet);
+
+                //payload = payloads.storePayload(mp2Packet);
+                m_inputpackets.add(mp2Packet.buffer);
                 //m_inputpackets.add(mp2Packet.buffer);
                 /* Payload processing is done via callback function, n/a for descrambler */
                 lenprocessed += 188;
             }
 
         }
-        private byte[] decryptpacket(Mpeg2Packet packet)
-        {
-            if (packet.scramblingcontrol == 00)
-                return packet.buffer;
-            else /* decryption required*/
-            {
-                if (oscam != null)
-                    return oscam.decryptpacket(packet.buffer);
-                else
-                    return packet.buffer;
-            }
-        }
         private void WriteData()
         {
-            /* 
-             * Currently writing from inputpackets. 
-             * This should be changed to outputpackets when decoding is implemented 
-             */
             byte[]? buf = new byte[188];
             byte[] rtpPacket = new byte[7*188];
             int rtsppacketcount = 0;
@@ -180,6 +158,7 @@ namespace Descrambler
                         {
                             log.Debug(String.Format("OUTPUT> Processed {0} bytes in {1} RTSP packets in {2} seconds: {3} Kb/s", bytesprocessed, rtsppacketcount, secondselapsed, (bytesprocessed / 1000 / secondselapsed)));
                         }
+                        m_oscamserver.decryptpackets(rtpPacket);
                         writer.Write(rtpPacket);
                     }
                     catch (Exception e)
@@ -193,15 +172,15 @@ namespace Descrambler
 
         public void setOscam(string oscamServer, int oscamPort)
         {
-            oscam = new Oscamserver(oscamServer, oscamPort);
+            m_oscamserver = new Oscamserver(oscamServer, oscamPort, m_oscampackets);
             if (m_channel != null)
-                oscam.Start(m_channel);
+                m_oscamserver.Start(m_channel);
         }
         public void setChannel(Channel channel)
         {
             m_channel = channel;
-            if (oscam != null)
-                oscam.Start(m_channel);
+            if (m_oscamserver != null)
+                m_oscamserver.Start(m_channel);
         }
     }
 

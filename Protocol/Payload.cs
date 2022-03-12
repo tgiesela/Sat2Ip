@@ -12,7 +12,7 @@ namespace Protocol
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
                             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        internal int maxpayloadlength = 256*1024;
+        internal int maxpayloadlength = 512*1024;
         public byte[] data { get; set;  }
         public int payloadlength { get; set; } = 0;
         public int payloadpid { get; set; } = 0;
@@ -73,6 +73,8 @@ namespace Protocol
                 Payload newpayload = new Payload();
                 newpayload.payloadpid = pid;
                 newpayload.payloadlength = 0;
+                newpayload.expectedlength = 0;
+                newpayload.type = Payload.packettype.unknown;
                 payloads.Add(newpayload);
                 return newpayload;
             }
@@ -91,16 +93,20 @@ namespace Protocol
             Payload payload = findPayload(packet.pid, packet.payloadstartindicator);
             if (packet.payloadstartindicator == 1) /* Start of payload*/
             {
-                //log.DebugFormat("Store payload for PID {0}: , with length: {1}",packet.pid, 188 - packet.headerlen);
                 if (payload.payloadlength > 0) /* Still payload in buffer, reset before continuing */
                 {
-                    if (payload.expectedlength > 0) { 
+                    if (payload.type != Payload.packettype.pes) { 
                         /* PES packets of a video stream may have expectedlength = 0. Which is an undefined packet length
                          * In that case it is just treated as a new packet.*/
                         log.DebugFormat("WARN: Payload in buffer while receiving new payload. PID {0}, explen: {1}, rcvdlen: {2}",
                             packet.pid, payload.expectedlength, payload.payloadlength);
+                        invokeprocesspayload(payload);
                     }
-                    invokeprocesspayload(payload);
+                    else
+                    {
+                        payload.clear();
+                    }
+
                 }
                 if (packet.scramblingcontrol == 0)
                 {
@@ -138,10 +144,10 @@ namespace Protocol
                             payload.clear();
                             return payload;
                         }
-                        payload.expectedlength = Utils.Utils.toShort(packet.payload[pointer+2], packet.payload[pointer+3]) & 0x0FFF;
+                        payload.expectedlength = (Utils.Utils.toShort(packet.payload[pointer+2], packet.payload[pointer+3]) & 0x0FFF) + 4;
                         bytestocopy = 188 - packet.headerlen - pointer;
-                        if (bytestocopy != packet.payloadlength)
-                            log.DebugFormat("Bytestocopy2: {0}, Payloadlength: {1}", bytestocopy, packet.payloadlength);
+                        //log.DebugFormat("Store payload for PID {0}: , with exp. length: {1} and packet length: {2}, CC={3}",
+                        //    packet.pid, payload.expectedlength, bytestocopy,packet.continuitycounter);
 
                         if ((payload.payloadlength + bytestocopy) > payload.maxpayloadlength)
                         {
@@ -152,7 +158,7 @@ namespace Protocol
                         payload.payloadlength = payload.payloadlength + bytestocopy;
                         payload.data[0] = 0;
                     }
-                    if ((payload.expectedlength > 0) && payload.isComplete())
+                    if ((payload.expectedlength > 0) && payload.isComplete() && payload.type != Payload.packettype.pes)
                     {
                         invokeprocesspayload(payload);
                     }
@@ -161,14 +167,15 @@ namespace Protocol
                 else
                 {
                     payload.scambled = true;
+                    payload.type = Payload.packettype.pes;
                 }
             }
             else
             {
-                if (payload != null && payload.scambled == false)
+                if (payload != null && payload.scambled == false && payload.type == Payload.packettype.table)
                 {
-                    //log.DebugFormat("Append payload for PID {0}: , with length: {1}, expected {2}, current {3}", 
-                    //    packet.pid, 188 - packet.headerlen, payload.expectedlength, payload.payloadlength);
+                    //log.DebugFormat("Append payload for PID {0}: , with length: {1}, expected {2}, current {3}, CC={4}", 
+                    //    packet.pid, 188 - packet.headerlen, payload.expectedlength, payload.payloadlength, packet.continuitycounter);
                     if ((payload.payloadlength + packet.payloadlength) > payload.maxpayloadlength)
                     {
                         log.DebugFormat("Payload does not fit in buffer ({0} + {1} > {2}.", payload.payloadlength, packet.payloadlength, payload.maxpayloadlength);
@@ -176,7 +183,8 @@ namespace Protocol
                     }
                     if (payload.payloadlength == 0)
                     {
-                        log.Debug("There should have been something in the buffer for PID: " + payload.payloadpid);
+                        log.DebugFormat("There should have been something in the buffer for PID: {0}, exp.len: {1}, type: {2}",
+                            payload.payloadpid, payload.expectedlength, payload.type);
                     }
                     else
                     {

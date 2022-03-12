@@ -1,0 +1,4 @@
+﻿[*.cs]
+
+# CS0169: The field 'OscamserverNew.m_ouputpackets' is never used
+dotnet_diagnostic.CS0169.severity = none

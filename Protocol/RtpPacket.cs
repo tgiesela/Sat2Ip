@@ -9,7 +9,7 @@ namespace Sat2Ip
     public class RtpPacket
     {
         private RtpHeader hdr;
-        private struct RtpHeader
+        public struct RtpHeader
         {
             public int Version;
             public bool Padding;
@@ -27,6 +27,7 @@ namespace Sat2Ip
             internal int PayloadLength;
         }
         private byte[] buffer { get; }
+        public RtpHeader header { get { return hdr;} }
         public RtpPacket(byte[] _buffer)
         {
             this.buffer = _buffer;

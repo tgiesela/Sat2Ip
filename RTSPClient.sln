@@ -21,7 +21,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServerSockets", "ServerSock
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FFDecsa", "FFDecsa\FFDecsa.vcxproj", "{DC35F6B8-7CBB-4F45-BF41-DFE22BBE999C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oscam", "Oscam\Oscam.csproj", "{4F665CD8-6A31-4BEF-B812-EBE17DEE7651}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Oscam", "Oscam\Oscam.csproj", "{4F665CD8-6A31-4BEF-B812-EBE17DEE7651}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Performance", "Performance\Performance.csproj", "{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Buffers", "Buffers\Buffers.csproj", "{FBC97563-9271-47D8-ACA0-125B6FB06619}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1A4551CF-A1BB-4815-AA8D-8E0C526535F4}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -153,6 +162,30 @@ Global
 		{4F665CD8-6A31-4BEF-B812-EBE17DEE7651}.Release|x64.Build.0 = Release|Any CPU
 		{4F665CD8-6A31-4BEF-B812-EBE17DEE7651}.Release|x86.ActiveCfg = Release|Any CPU
 		{4F665CD8-6A31-4BEF-B812-EBE17DEE7651}.Release|x86.Build.0 = Release|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Debug|x64.Build.0 = Debug|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Debug|x86.Build.0 = Debug|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Release|x64.ActiveCfg = Release|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Release|x64.Build.0 = Release|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Release|x86.ActiveCfg = Release|Any CPU
+		{A0F0FBEE-0281-4A65-9DCB-379EFFB633D9}.Release|x86.Build.0 = Release|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Debug|x64.Build.0 = Debug|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Debug|x86.Build.0 = Debug|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Release|x64.ActiveCfg = Release|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Release|x64.Build.0 = Release|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Release|x86.ActiveCfg = Release|Any CPU
+		{FBC97563-9271-47D8-ACA0-125B6FB06619}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -15,7 +15,7 @@
       <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="IpAddressDevice" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">10.56.57.55</Value>
     </Setting>
     <Setting Name="PortDevice" Type="System.String" Scope="User">
       <Value Profile="(Default)">554</Value>

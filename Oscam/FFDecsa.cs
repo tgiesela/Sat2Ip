@@ -10,6 +10,10 @@ namespace Oscam
 {
     public class FFDecsa
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
         /*-------------------*/
         /* FFdecsa interface */
         /*-------------------*/
@@ -18,7 +22,7 @@ namespace Oscam
         // You should try to call decrypt_packets with more packets than the number
         // returned here for performance reasons (use get_suggested_cluster_size to know
         // how many).
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern int get_internal_parallelism();
@@ -29,36 +33,36 @@ namespace Oscam
         // Passing less packets could slow down the decryption.
         // Passing more packets is never bad (if you don't spend a lot of time building
         // the list).
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern int get_suggested_cluster_size();
 
         // -- alloc & free the key structure
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern IntPtr get_key_struct();
 
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void free_key_struct(IntPtr keys);
 
         // -- set control words, 8 bytes each
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void set_control_words(IntPtr keys, IntPtr even, IntPtr odd);
 
         // -- set even control word, 8 bytes
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void set_even_control_word([In] IntPtr keys, byte[] even);
 
         // -- set odd control word, 8 bytes
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void set_odd_control_word([In] IntPtr keys, byte[] odd);
@@ -69,12 +73,12 @@ namespace Oscam
         // -- decrypt many TS packets
         // This interface is a bit complicated because it is designed for maximum speed.
         // Please read doc/how_to_use.txt.
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         //static extern int decrypt_packets(IntPtr keys, IntPtr[] cluster);
         static extern int decrypt_packets(IntPtr keys, [In][Out] string[] cluster);
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew - Copy\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,EntryPoint = "decrypt_packets",
             CallingConvention = CallingConvention.Cdecl)]
         //static extern int decrypt_packets(IntPtr keys, IntPtr[] cluster);
@@ -84,7 +88,6 @@ namespace Oscam
         private int paralleldecrypts = 0;
         private int batchsize = 0;
         private const int MAX_CSA_IDX = 16;
-        private int cs;
         private uint[,,] des_key_schedule = new uint[MAX_CSA_IDX,2,32];
         private uint[] algo =new uint[MAX_CSA_IDX];
         private DateTime[] cwSeen = new DateTime[MAX_CSA_IDX];   // last time the CW for the related key was seen
@@ -124,6 +127,8 @@ namespace Oscam
                 if (idx < MAX_CSA_IDX)
                 {
                     cwSeen[idx] = DateTime.Now;
+                    log.DebugFormat("Set key parity: {0}, index: {1}", ca_descr.parity, idx);
+                    Utils.Utils.DumpBytes(ca_descr.cw, ca_descr.cw.Length);
                     if (ca_descr.parity == 0)
                     {
                         set_even_control_word(keys[idx], ca_descr.cw);
@@ -142,28 +147,30 @@ namespace Oscam
             return batchsize;
         }
 
-        public void DecryptMultiple(csa_batch[] pcks)
+        public void DecryptMultiple(byte[] cluster, uint keyidx)
         {
+            int lenprocessed = 0;
+            int blocks = 0;
+            IntPtr[] pcluster = new IntPtr[16];
+            while (lenprocessed < cluster.Length)
             {
-                GCHandle handle = GCHandle.Alloc(pcks, GCHandleType.Pinned);
-                //decrypt_packets(keys[0], handle.AddrOfPinnedObject());
-                handle.Free();
+                pcluster[2*blocks + 0] = Marshal.UnsafeAddrOfPinnedArrayElement(cluster, lenprocessed);
+                pcluster[2*blocks + 1] = Marshal.UnsafeAddrOfPinnedArrayElement(cluster, lenprocessed + 188);
+                blocks++;
+                lenprocessed += 188;
             }
+            pcluster[2*blocks + 0] = IntPtr.Zero;
+            pcluster[2*blocks + 1] = IntPtr.Zero;
+            decrypt_packetsbyte(keys[keyidx], pcluster);
         }
-        public void DecryptPackets(byte[] cluster)
+        public void DecryptPackets(byte[] cluster, uint keyidx)
         {
-//            byte[] managedArray = new byte[512];
-//            Marshal.Copy(keys[0], managedArray, 0, 512);
-//            string[] scluster = new string[10];
-//            scluster[0] = "AAAAAAAAAA";
-//            scluster[1] = "FFFFFFFFFF";
             IntPtr[] pcluster = new IntPtr[10];
             pcluster[0] = Marshal.UnsafeAddrOfPinnedArrayElement(cluster, 0);
             pcluster[1] = Marshal.UnsafeAddrOfPinnedArrayElement(cluster, 188);
             pcluster[2] = IntPtr.Zero;
             pcluster[3] = IntPtr.Zero;
- //           decrypt_packets(keys[0], scluster);
-            decrypt_packetsbyte(keys[0], pcluster);
+            decrypt_packetsbyte(keys[keyidx], pcluster);
         }
     }
 }

@@ -60,10 +60,10 @@ namespace Sat2IpGui
 
         private void cmbLNB_SelectedValueChanged(object sender, EventArgs e)
         {
-            m_LNB = new SatUtils.LNB(lnb);
             List<Transponder> transponders = new List<Transponder>();
             info = reader.findSatelliteName(cmbLNB.SelectedItem.ToString());
             lnb = cmbLNB.SelectedIndex + 1;
+            m_LNB = new SatUtils.LNB(lnb);
             iniFilename = reader.getTransponderIniFilename(info);
             inifile = new SatUtils.IniFile(System.IO.Path.GetFullPath(iniFilename));
             string[] sections = inifile.ReadSections();
@@ -144,6 +144,7 @@ namespace Sat2IpGui
                     m_LNB.setTransponder(tsp, lChannels);
                 }
                 m_LNB.save();
+                MessageBox.Show("Scan complete, channels saved");
             }
             else
             {
@@ -153,6 +154,7 @@ namespace Sat2IpGui
 
                 m_LNB.setTransponder(tsp,lChannels);
                 m_LNB.save();
+                MessageBox.Show("Scan complete, channels saved");
             }
             List<Network> networks = scanner.networks;
             foreach (Network n in networks)
@@ -197,7 +199,7 @@ namespace Sat2IpGui
         {
             foreach (Channel channel in channels)
             {
-                System.Console.WriteLine("Provider: " + channel.Providername +
+                log.Debug("Provider: " + channel.Providername +
                     "\tService: " + channel.Servicename + 
                     "\tProgram number: " + channel.Programnumber.ToString("X2") + 
                     "\tProgram PID: " + channel.Programpid.ToString("X2") +

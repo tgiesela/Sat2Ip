@@ -12,12 +12,14 @@ namespace ServerSockets
     public class UdpListener
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
         private Boolean _listening = false;
         private Boolean _threadactive = false;
         private Thread _listeningThread;
         private int _port;
-        private UdpClient listener;
+        private UdpClient? listener;
         private IPEndPoint _groupEP;
         public event EventHandler<DatareceivedArgs> dataReceived;
         private ManualResetEvent receiveDone =
@@ -49,7 +51,7 @@ namespace ServerSockets
         public class StateObject
         {
             // Client socket.
-            public Socket workSocket = null;
+            public Socket? workSocket = null;
             // Size of receive buffer.
             public const int BufferSize = 4096;
             // Receive buffer.
@@ -124,12 +126,14 @@ namespace ServerSockets
         }
         public void setReceiveTimeout(int receivetimeout)
         {
+            if (listener == null) throw new Exception("Listener not connected");
             listener.Client.ReceiveTimeout = receivetimeout;
         }
         public byte[] Receive()
         {
             try
             {
+                if (listener == null) throw new Exception("Listener not connected");
                 return listener.Receive(ref _groupEP);
             }
             catch (SocketException se)

@@ -27,7 +27,7 @@ namespace Sat2IpGui
         private ListBoxItem m_selecteditem;
         private String _currentpids = String.Empty;
         private RTSP rtsp;
-        private DescramblerNew descrambler;
+        private Descrambler.Descrambler descrambler;
         List<Channel> channels = new();
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -127,7 +127,7 @@ namespace Sat2IpGui
                 {
                     if (descrambler == null)
                     {
-                        descrambler = new Descrambler.DescramblerNew(rtsp.Startport, rtsp.Startport + 2);
+                        descrambler = new Descrambler.Descrambler(rtsp.Startport, rtsp.Startport + 2);
                         int oscamport;
                         Int32.TryParse(Properties.App.Default.OscamPort, out oscamport);
                         descrambler.setOscam(Properties.App.Default.OscamServer, oscamport);
@@ -172,7 +172,6 @@ namespace Sat2IpGui
             this.myVlcControl.Log -= this.OnVlcMediaPlayerLog;
             descrambler.stop();
             rtsp.commandTeardown("");
-            //cDescramblerWrapper_StopDescrambler(pcDescramblerWrapper);
         }
 
         private void ServerToolStripMenuItem_Click(object sender, EventArgs e)

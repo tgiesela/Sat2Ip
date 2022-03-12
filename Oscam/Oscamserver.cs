@@ -1,4 +1,5 @@
-﻿using ClientSockets;
+﻿using Circularbuffer;
+using ClientSockets;
 using Protocol;
 using Sat2Ip;
 using System.Runtime.InteropServices;
@@ -85,17 +86,24 @@ namespace Oscam
         private int m_demuxinx;
         private int m_filternr;
         private Channel? m_channel;
+        private Thread? m_thread;
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-        public Oscamserver(string ipaddress, int port)
+        private mp2packetqueue m_packetqueue;
+        private Payloads m_payloads;
+        private bool m_active;
+
+        public Oscamserver(string ipaddress, int port, mp2packetqueue queue)
         {
             m_ipaddress = ipaddress;
             m_port = port;
             m_oscamsock = new(ipaddress, port);
             m_oscamsock.ReceiveComplete += new EventHandler<DatareceivedArgs>(DataReceived);
             m_ffdecsa = new();
+            m_packetqueue = queue;
+            m_payloads = new(processoscampayload);
         }
         private int processData(Span<byte> data)
         {
@@ -209,7 +217,7 @@ namespace Oscam
                             m_adapterinx = data[4];
                             m_ca_pid.pid = (uint)Utils.Utils.toInt(data[5], data[6], data[7], data[8]);
                             m_ca_pid.index = Utils.Utils.toInt(data[9], data[10], data[11], data[12]);
-                            log.Debug(String.Format("DVBAPI_CA_SET_PID -> pid = {0}, index = {1}", m_ca_pid.pid, m_ca_pid.index));
+                            log.Debug(String.Format("DVBAPI_CA_SET_PID -> pid = {0}({0:X}), index = {1}", m_ca_pid.pid, m_ca_pid.index));
                             lenprocessed = 13;
                             if (m_ca_pid.index == -1)
                             {
@@ -283,7 +291,7 @@ namespace Oscam
                                                     , System.Text.ASCIIEncoding.ASCII.GetString(readername, 0, readernamelen)
                                                     , System.Text.ASCIIEncoding.ASCII.GetString(fromsourcename, 0, fromsourcenamelen)
                                                     , System.Text.ASCIIEncoding.ASCII.GetString(protocolname, 0, protocolnamelen)));
-                            lenprocessed = offset;
+                            lenprocessed = offset+1;
                             break;
                         }
                     default:
@@ -297,8 +305,6 @@ namespace Oscam
         }
         private void DataReceived(object? sender, DatareceivedArgs e)
         {
-            byte[] b_uint32 = new byte[4];
-            byte[] b_uint16 = new byte[2];
             Span<byte> msgspan = e.buffer;
 
             log.Debug("Data received");
@@ -316,16 +322,42 @@ namespace Oscam
         public void Start(Channel channel)
         {
             m_channel = channel;
+            m_thread = new Thread(new ThreadStart(oscamthread));
+            m_thread.Start();
+        }
+        void processoscampayload(Payload payload)
+        {
+            filterpacket(payload);
+        }
+        private void oscamthread()
+        {
+            byte[] decryptbuf = new byte[7*188];
             m_oscamsock.Start();
             m_oscamsock.Receive();
             sendgreeting();
             sendCA_PMT();
+            m_active = true;
+            while (m_active)
+            {
+                if (m_packetqueue.getBufferedsize() < 1)
+                {
+                    Thread.Sleep(1);
+                }
+                else
+                {
+                    Mpeg2Packet? buf;
+                    m_packetqueue.get(out buf);
+                    m_payloads.storePayload(buf);
+                }
+            }
+            log.Debug("Writing stopped");
         }
         /// <summary>
         /// Disconnects OSCAM
         /// </summary>
         public void Stop()
         {
+            m_active=false;
             m_oscamsock.Disconnect();
         }
 
@@ -415,18 +447,19 @@ namespace Oscam
             }
             return (match == 1 && i == 16);
         }
-        public byte[] decryptpacket(byte[] packet)
+        public void decryptpacket(byte[] packet)
         {
             if (m_ts.havecw)
             {
-                IntPtr[] cluster = new IntPtr[10];
-                byte[] onebuf = new byte[188];
-                Array.Copy(packet, 0, onebuf, 0, 188);
-                cluster[0] = Marshal.UnsafeAddrOfPinnedArrayElement(onebuf, 0); 
-                cluster[1] = cluster[0]; cluster[2] = IntPtr.Zero;
-                m_ffdecsa.DecryptPackets(packet);
+                m_ffdecsa.DecryptPackets(packet, ca_descr.index);
             }
-            return packet;
+        }
+        public void decryptpackets(byte[] packets)
+        {
+            if (m_ts.havecw)
+            {
+                m_ffdecsa.DecryptMultiple(packets, ca_descr.index);
+            }
         }
         public bool filterpacket(Payload packet)
         {
@@ -639,7 +672,7 @@ namespace Oscam
             capmt[5] = (byte)((totallength - 6) & 0xff);
             log.Debug("Send CA_PMT");
             Utils.Utils.DumpBytes(capmt, totallength);
-            m_oscamsock.Send(capmt, totallength);
+            m_oscamsock.SendWait(capmt, totallength);
         }
 
     }

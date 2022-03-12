@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Interfaces;
 using Protocol;
-using Sat2Ip;
-using Utils;
 
 namespace Sat2Ip
 {
@@ -58,18 +54,7 @@ namespace Sat2Ip
         private Transponder _transponder;
         private bool scancomplete;
         public List<Network> networks { get { return _networks; } set { _networks = value; } }
-        public Transponder Transponder
-        {
-            get
-            {
-                return _transponder;
-            }
-
-            set
-            {
-                _transponder = value;
-            }
-        }
+        public Transponder Transponder { get { return _transponder; } set { _transponder = value; } }
 
         public int SCANTIMEOUT { get; private set; }
         public Scanner(int portdata, int portreport, RTSP rtsp)
@@ -125,7 +110,6 @@ namespace Sat2Ip
             {
                 scancomplete = true;
             }
-            //rtsp.commandPlay("?delpids=16");
         }
         protected void OnCATReceived()
         {

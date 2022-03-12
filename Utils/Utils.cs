@@ -8,16 +8,20 @@ namespace Utils
 {
     public static class Utils
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+
         public static void DumpBytes(byte[] bytes, int length)
         {
             int remainlen = length;
-            //Console.WriteLine(BitConverter.ToString(bytes));
             for (int i = 0; i < (length / 16) + 1; i = i + 1)
             {
                 StringBuilder hex = new StringBuilder(16 * 2);
                 for (int j = 0; j < Math.Min(16,remainlen); j++)
                     hex.AppendFormat(" {0:x2}", bytes[i * 16 + j]);
-                Console.WriteLine(hex.ToString());
+                log.Debug(hex.ToString());
                 remainlen = remainlen - 16;
             }
         }

@@ -143,6 +143,7 @@
             // 
             // cbRadio
             // 
+            this.cbRadio.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.cbRadio.AutoSize = true;
             this.cbRadio.Location = new System.Drawing.Point(502, 37);
             this.cbRadio.Name = "cbRadio";
@@ -154,6 +155,7 @@
             // 
             // cbTV
             // 
+            this.cbTV.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.cbTV.AutoSize = true;
             this.cbTV.Location = new System.Drawing.Point(564, 37);
             this.cbTV.Name = "cbTV";
@@ -165,6 +167,7 @@
             // 
             // cbData
             // 
+            this.cbData.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.cbData.AutoSize = true;
             this.cbData.Location = new System.Drawing.Point(609, 37);
             this.cbData.Name = "cbData";

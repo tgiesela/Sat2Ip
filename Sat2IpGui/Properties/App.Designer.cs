@@ -73,7 +73,7 @@ namespace Sat2IpGui.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        [global::System.Configuration.DefaultSettingValueAttribute("10.56.57.55")]
         public string IpAddressDevice {
             get {
                 return ((string)(this["IpAddressDevice"]));
