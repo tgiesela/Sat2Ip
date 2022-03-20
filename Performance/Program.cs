@@ -53,7 +53,7 @@ namespace test
             //List<House> houseOnes = houses.Where(house => house.Name == "House 1").ToList();
             foreach (Transponder trs in lnb.getTransponders())
             {
-                foreach (Channel c in lnb.getChannelsOnTransponder(trs.frequency))
+                foreach (Channel c in lnb.getChannelsOnTransponder(trs.frequency, trs.diseqcposition))
                 {
                     channels.Add(c);
                 }

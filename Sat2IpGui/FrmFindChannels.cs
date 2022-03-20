@@ -19,22 +19,15 @@ namespace Sat2IpGui
 
         private int lnb;
         private SatUtils.LNB m_LNB;
-        private int frequency;
-        private string polarisation;
-        private int samplerate;
-        private string errorcorrections;
-        private string dvbtype;
-        private string mtype;
         private SatUtils.SatelliteReader reader;
         private List<SatUtils.SatelliteInfo> m_listinfo;
         private SatUtils.SatelliteInfo info;
         private string iniFilename;
         private SatUtils.IniFile inifile;
+        private Scanner scanner;
+        private bool scanning = false;
         public FrmFindChannels()
         {
-
-//            log4net.ILog log4 = log4net.LogManager.GetLogger
-//            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
             InitializeComponent();
             cmbTransponder.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -60,6 +53,14 @@ namespace Sat2IpGui
 
         private void cmbLNB_SelectedValueChanged(object sender, EventArgs e)
         {
+            if (cbUseNit.Checked)
+                populateTranspondersNIT();
+            else
+                populateTransponders();
+        }
+
+        private void populateTransponders()
+        {
             List<Transponder> transponders = new List<Transponder>();
             info = reader.findSatelliteName(cmbLNB.SelectedItem.ToString());
             lnb = cmbLNB.SelectedIndex + 1;
@@ -67,22 +68,16 @@ namespace Sat2IpGui
             iniFilename = reader.getTransponderIniFilename(info);
             inifile = new SatUtils.IniFile(System.IO.Path.GetFullPath(iniFilename));
             string[] sections = inifile.ReadSections();
-            if (sections.Contains<string>("DVB") && sections.Contains<string>("SATTYPE")) {
+            cmbTransponder.Items.Clear();
+            if (sections.Contains<string>("DVB") && sections.Contains<string>("SATTYPE"))
+            {
                 string nroftransponders = inifile.ReadValue("DVB", "0");
                 cmbTransponder.Items.Clear();
-                for (int i = 1; i <= int.Parse(nroftransponders);i++)
+                for (int i = 1; i <= int.Parse(nroftransponders); i++)
                 {
                     string line = inifile.ReadValue("DVB", i.ToString());
                     cmbTransponder.Items.Add(line);
-                    Transponder tsp = new Transponder();
-                    extractInfoFromTransponder(line);
-                    tsp.diseqcposition = lnb;
-                    tsp.frequency = frequency;
-                    tsp.samplerate = samplerate;
-                    tsp.polarisationFromString(polarisation);
-                    tsp.dvbsystemFromString(dvbtype);
-                    tsp.fecFromString(errorcorrections);
-                    tsp.mtypeFromString(mtype);
+                    Transponder tsp = extractInfoFromTransponder(line);
                     transponders.Add(tsp);
                 }
                 btnScan.Enabled = true;
@@ -97,65 +92,105 @@ namespace Sat2IpGui
             m_LNB.save();
         }
 
-        private void cmbTransponder_SelectedIndexChanged(object sender, EventArgs e)
+        private void populateTranspondersNIT()
         {
-            string transponder = cmbTransponder.SelectedItem.ToString();
-            extractInfoFromTransponder(transponder);
-        }
+            List<Transponder> transponders = new List<Transponder>();
+            lnb = cmbLNB.SelectedIndex + 1;
+            m_LNB = new SatUtils.LNB(lnb);
+            cmbTransponder.Items.Clear();
+            foreach (Network netw in m_LNB.networks)
+            {
+                foreach (Transponder t in netw.transponders)
+                {
+                    if (transponders.Find(x => x.frequency == t.frequency && x.diseqcposition == t.diseqcposition) == null)
+                        transponders.Add(t);
+                    else
+                        log.Debug("Duplicate transponder skipped: " + t.frequency);
+                }
+            }
+            transponders = transponders.OrderBy(x => x.frequency).ToList();
+            foreach (Transponder t in transponders)
+            {
+                string freq = t.frequencydecimal.Value.ToString(System.Globalization.CultureInfo.CreateSpecificCulture("en-us"));
+                string line = String.Format("{0},{1},{2},{3},{4},{5}", freq, (char)t.polarisation, t.samplerate, (int)t.fec, t.dvbsystem, t.mtype);
+                cmbTransponder.Items.Add(line);
+            }
 
-        private void extractInfoFromTransponder(string transponder)
+            btnScan.Enabled = true;
+            m_LNB.transponders = transponders;
+            m_LNB.save();
+        }
+        private Transponder extractInfoFromTransponder(string transponder)
         {
+            Transponder tsp = new Transponder();
             char[] delimiterChars = { ' ', ',' };
             string[] parts = transponder.Split(delimiterChars);
-            frequency = int.Parse(parts[0]);
-            polarisation = parts[1];
-            samplerate = int.Parse(parts[2]);
-            errorcorrections = parts[3];
-            dvbtype = parts[4];
-            mtype = parts[5];
+            decimal frequencydecimal = decimal.Parse(parts[0], System.Globalization.CultureInfo.CreateSpecificCulture("en-us"));
+            int frequency = (int)frequencydecimal;
+            string polarisation = parts[1];
+            int samplerate = int.Parse(parts[2]);
+            string errorcorrections = parts[3];
+            string dvbtype = parts[4];
+            string mtype = parts[5];
+            tsp.diseqcposition = lnb;
+            tsp.frequency = (int)frequencydecimal;
+            tsp.frequencydecimal = frequencydecimal;
+            tsp.samplerate = samplerate;
+            tsp.polarisationFromString(polarisation);
+            tsp.dvbsystemFromString(dvbtype);
+            tsp.fecFromString(errorcorrections);
+            tsp.mtypeFromString(mtype);
+            return tsp;
         }
 
         private async void btnScan_ClickAsync(object sender, EventArgs e)
         {
-            //IntPtr pcScannerWrapper = cScannerWrapper_Create();
+            btnScan.Enabled = false;
+            btnClose.Enabled = false;
             UriBuilder uribld = new UriBuilder();
             uribld.Scheme = "rtp";
             uribld.Host = Sat2IpGui.Properties.App.Default.IpAddressDevice;
             uribld.Port = int.Parse(Sat2IpGui.Properties.App.Default.PortDevice);
             RTSP rtsp = new RTSP(uribld.Uri);
-            Scanner scanner = new Scanner(rtsp.Startport, rtsp.Endport, rtsp);
+            scanner = new Scanner(rtsp.Startport, rtsp.Endport, rtsp);
+            btnStop.Enabled = true;
+            scanning = true;
             if (cbScanAll.Checked)
             {
-                string nroftransponders = inifile.ReadValue("DVB", "0");
-                cmbTransponder.Items.Clear();
                 int channelcount = 0;
-                for (int i = 1; i <= int.Parse(nroftransponders); i++)
+                for (int i = 0; i < cmbTransponder.Items.Count && scanning; i++)
                 {
-                    extractInfoFromTransponder(inifile.ReadValue("DVB", i.ToString()));
-                    txtTransponder.Text = frequency.ToString();
-
+                    Transponder tsp = extractInfoFromTransponder(cmbTransponder.Items[i].ToString());
+                    txtTransponder.Text = tsp.frequency.ToString();
                     List<Channel> lChannels = new List<Channel>();
-                    Transponder tsp = new Transponder();
                     await scanChannelsAsync(scanner, lChannels, tsp);
                     channelcount += lChannels.Count;
                     txtChannels.Text = channelcount.ToString();
                     this.Update();
-
-                    m_LNB.setTransponder(tsp, lChannels);
+                    if (lChannels.Count > 0)
+                    {
+                        m_LNB.setTransponder(tsp, lChannels);
+                        m_LNB.networks = scanner.networks;
+                    }
                 }
-                m_LNB.save();
-                MessageBox.Show("Scan complete, channels saved");
+
             }
             else
             {
                 List<Channel> lChannels = new List<Channel>();
-                Transponder tsp = new Transponder();
+                string transponder = cmbTransponder.SelectedItem.ToString();
+                Transponder tsp = extractInfoFromTransponder(transponder);
                 await scanChannelsAsync(scanner, lChannels, tsp);
 
-                m_LNB.setTransponder(tsp,lChannels);
-                m_LNB.save();
-                MessageBox.Show("Scan complete, channels saved");
+                if (lChannels.Count > 0)
+                {
+                    m_LNB.setTransponder(tsp, lChannels);
+                    m_LNB.networks = scanner.networks;
+                }
             }
+            m_LNB.save();
+            MessageBox.Show("Scan complete, channels saved");
+
             List<Network> networks = scanner.networks;
             foreach (Network n in networks)
             {
@@ -165,21 +200,16 @@ namespace Sat2IpGui
                 {  
                     log.DebugFormat("Freq: {0}, polarization: {1}, symbolrate: {2}, orbit: {3}", t.frequency, t.polarisation, t.samplerate,Utils.Utils.bcdtohex(t.orbit));
                 }
-
+                m_LNB.save();
             }
             scanner.stop();
+            btnScan.Enabled = true;
+            btnClose.Enabled = true;
+            btnStop.Enabled = false;
         }
 
         private async Task<int> scanChannelsAsync(Scanner scanner, List<Channel> lChannels, Transponder tsp)
         {
-            tsp.diseqcposition = lnb;
-            tsp.frequency = frequency;
-            tsp.samplerate = samplerate;
-            tsp.polarisationFromString(polarisation);
-            tsp.dvbsystemFromString(dvbtype);
-            tsp.fecFromString(errorcorrections);
-            tsp.mtypeFromString(mtype);
-
             int nrOfChannelsInTransponder = 0;
             List<Channel> scantask = await scanner.scan(tsp);
             if (scantask != null)
@@ -212,9 +242,28 @@ namespace Sat2IpGui
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void cbUseNit_CheckedChanged(object sender, EventArgs e)
         {
+            if (cbUseNit.Checked)
+            {
+                populateTranspondersNIT();
+            }
+            else
+            {
+                populateTransponders();
+            }
+        }
 
+        private void btnStop_Click(object sender, EventArgs e)
+        {
+            if (scanning)
+            {
+                scanning = false;
+                if (scanner != null)
+                {
+                    scanner.stop();
+                }
+            }
         }
     }
 }

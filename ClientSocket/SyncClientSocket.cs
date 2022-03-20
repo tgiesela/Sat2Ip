@@ -85,6 +85,7 @@ namespace ClientSockets
         {
             try
             {
+                if (_sender == null) return;
                 if (bytedata.Length > _receivebuffer.Length)
                 {
                     log.Debug(String.Format("Buffer too long {0} > {1}", bytedata.Length, _receivebuffer.Length));
@@ -144,7 +145,8 @@ namespace ClientSockets
         public void Disconnect()
         {
             log.DebugFormat("Socket closed for {0}:{1}", _hostaddress, _port);
-            _sender.Shutdown(SocketShutdown.Both);
+            if (_sender.Connected)
+                _sender.Shutdown(SocketShutdown.Both);
             _sender.Close();
             _sender.Dispose();
             _sender = null;

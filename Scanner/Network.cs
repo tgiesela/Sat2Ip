@@ -1,9 +1,5 @@
 ﻿using Sat2Ip;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Interfaces
 {
@@ -11,40 +7,31 @@ namespace Interfaces
     {
         public int networkid { get; set; }
         public string networkname { get; set; }
-        public List<Transponder> transponders { get; }
+        public List<Transponder> transponders { get; set; }
         public bool nitcomplete 
         {  get { return _complete; }
         }
-        private int _nitreceivecount;
-        private int _highestsectionnr;
         private bool _complete;
+        private bool[] sections;
 
         public Network()
         {
             transponders = new List<Transponder>();
-            _nitreceivecount = 0;
-            _highestsectionnr = 0;
             _complete = false;
         }
-        public bool processsection(int sectionnr, int lastsectionnr)
+        public void sectionprocessed(int sectionnr, int lastsectionnr)
         {
-            _highestsectionnr = lastsectionnr;
-            if (sectionnr == _nitreceivecount)
+            if (sections == null || sections.Length != lastsectionnr + 1)
             {
-                return true;
+                sections = new bool[lastsectionnr + 1];
             }
-            else
+            sections[sectionnr] = true;
+            foreach (bool b in sections)
             {
-                return false;
+                if (!b)
+                    return;
             }
-        }
-        public void sectionprocessed(int sectionnr)
-        {
-            if (_nitreceivecount >= _highestsectionnr)
-            {
-                _complete = true;
-            }
-            _nitreceivecount++;
+            _complete = true;
         }
     }
 }

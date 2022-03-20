@@ -40,6 +40,9 @@
             this.cbRadio = new System.Windows.Forms.CheckBox();
             this.cbTV = new System.Windows.Forms.CheckBox();
             this.cbData = new System.Windows.Forms.CheckBox();
+            this.btnVLC = new System.Windows.Forms.Button();
+            this.lvChannels = new System.Windows.Forms.ListView();
+            this.Channel = new System.Windows.Forms.ColumnHeader();
             ((System.ComponentModel.ISupportInitialize)(this.myVlcControl)).BeginInit();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -84,6 +87,8 @@
             this.myVlcControl.VlcLibDirectory = null;
             this.myVlcControl.VlcMediaplayerOptions = null;
             this.myVlcControl.VlcLibDirectoryNeeded += new System.EventHandler<Vlc.DotNet.Forms.VlcLibDirectoryNeededEventArgs>(this.myVlcControl_VlcLibDirectoryNeeded);
+            this.myVlcControl.VideoOutChanged += new System.EventHandler<Vlc.DotNet.Core.VlcMediaPlayerVideoOutChangedEventArgs>(this.myVlcControl_VideoOutChanged);
+            this.myVlcControl.Click += new System.EventHandler(this.myVlcControl_Click);
             // 
             // menuStrip1
             // 
@@ -136,7 +141,7 @@
             this.lbChannels.Location = new System.Drawing.Point(500, 77);
             this.lbChannels.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.lbChannels.Name = "lbChannels";
-            this.lbChannels.Size = new System.Drawing.Size(285, 259);
+            this.lbChannels.Size = new System.Drawing.Size(285, 124);
             this.lbChannels.TabIndex = 6;
             this.lbChannels.SelectedIndexChanged += new System.EventHandler(this.lbChannels_SelectedIndexChanged);
             this.lbChannels.DoubleClick += new System.EventHandler(this.lbChannels_DoubleClick);
@@ -177,11 +182,40 @@
             this.cbData.UseVisualStyleBackColor = true;
             this.cbData.CheckedChanged += new System.EventHandler(this.cbData_CheckedChanged);
             // 
+            // btnVLC
+            // 
+            this.btnVLC.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.btnVLC.Location = new System.Drawing.Point(170, 343);
+            this.btnVLC.Name = "btnVLC";
+            this.btnVLC.Size = new System.Drawing.Size(75, 23);
+            this.btnVLC.TabIndex = 10;
+            this.btnVLC.Text = "VLC Player";
+            this.btnVLC.UseVisualStyleBackColor = true;
+            this.btnVLC.Click += new System.EventHandler(this.btnVLC_Click);
+            // 
+            // lvChannels
+            // 
+            this.lvChannels.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.lvChannels.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.Channel});
+            this.lvChannels.Location = new System.Drawing.Point(502, 207);
+            this.lvChannels.Name = "lvChannels";
+            this.lvChannels.Size = new System.Drawing.Size(283, 132);
+            this.lvChannels.TabIndex = 11;
+            this.lvChannels.UseCompatibleStateImageBehavior = false;
+            // 
+            // Channel
+            // 
+            this.Channel.Text = "Channel";
+            this.Channel.Width = 100;
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(813, 380);
+            this.Controls.Add(this.lvChannels);
+            this.Controls.Add(this.btnVLC);
             this.Controls.Add(this.cbData);
             this.Controls.Add(this.cbTV);
             this.Controls.Add(this.cbRadio);
@@ -215,6 +249,9 @@
         private System.Windows.Forms.CheckBox cbRadio;
         private System.Windows.Forms.CheckBox cbTV;
         private System.Windows.Forms.CheckBox cbData;
+        private System.Windows.Forms.Button btnVLC;
+        private System.Windows.Forms.ListView lvChannels;
+        private System.Windows.Forms.ColumnHeader Channel;
     }
 }
 

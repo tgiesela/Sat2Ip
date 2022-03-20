@@ -18,6 +18,7 @@ namespace Protocol
         public int payloadpid { get; set; } = 0;
         public int expectedlength { get; set; }
         public bool scambled { get; internal set; }
+        public int adaptationlength { get; internal set; }
 
         internal enum packettype
         {
@@ -29,6 +30,10 @@ namespace Protocol
         public Payload()
         {
             data = new byte[maxpayloadlength];
+            payloadlength = 0;
+            expectedlength = 0;
+            adaptationlength = 0;
+
         }
         public bool isComplete()
         {
@@ -44,6 +49,7 @@ namespace Protocol
         {
             payloadlength = 0;
             expectedlength = 0;
+            adaptationlength = 0;
         }
     }
     public class Payloads
@@ -72,8 +78,6 @@ namespace Protocol
                 log.DebugFormat("New payload created for pid {0}", pid);
                 Payload newpayload = new Payload();
                 newpayload.payloadpid = pid;
-                newpayload.payloadlength = 0;
-                newpayload.expectedlength = 0;
                 newpayload.type = Payload.packettype.unknown;
                 payloads.Add(newpayload);
                 return newpayload;
@@ -87,19 +91,42 @@ namespace Protocol
         {
             payload.payloadlength = 0;
             payload.expectedlength = 0;
+            payload.adaptationlength = 0;
+        }
+        private void appendtopayload(Payload payload, Mpeg2Packet packet, int offsetfrom, int bytestocopy)
+        {
+            if ((payload.payloadlength + bytestocopy) > payload.maxpayloadlength)
+            {
+                log.DebugFormat("Payload does not fit in buffer ({0} + {1} > {2}.", payload.payloadlength, bytestocopy, payload.maxpayloadlength);
+                throw new Exception("Payload does not fit in buffer.");
+            }
+            System.Buffer.BlockCopy(packet.payload, offsetfrom, payload.data, payload.payloadlength, bytestocopy);
+            payload.payloadlength = payload.payloadlength + bytestocopy;
+            payload.adaptationlength = payload.adaptationlength + packet.adaptationlength;
+            log.DebugFormat("Appended {0} bytes to payload for pid: {1}, expectedlength {2}, payloadlength {3}",
+                bytestocopy, payload.payloadpid, payload.expectedlength, payload.payloadlength);
         }
         public Payload storePayload(Mpeg2Packet packet)
         {
             Payload payload = findPayload(packet.pid, packet.payloadstartindicator);
-            if (packet.payloadstartindicator == 1) /* Start of payload*/
+            if (packet.payloadstartindicator == 1) /* Start of payload */
             {
+                /*
+                 * If the payload starts after a non-zero pointer, the data before the payload start (pointer)
+                 * should be appended to the payload which is already there.
+                 */
+                int pointer = packet.payload[0];
                 if (payload.payloadlength > 0) /* Still payload in buffer, reset before continuing */
                 {
                     if (payload.type != Payload.packettype.pes) { 
                         /* PES packets of a video stream may have expectedlength = 0. Which is an undefined packet length
                          * In that case it is just treated as a new packet.*/
-                        log.DebugFormat("WARN: Payload in buffer while receiving new payload. PID {0}, explen: {1}, rcvdlen: {2}",
-                            packet.pid, payload.expectedlength, payload.payloadlength);
+                        appendtopayload(payload, packet, 0, pointer);
+                        if (!payload.isComplete())
+                        {
+                            log.DebugFormat("WARN: Payload in buffer while receiving new payload. PID {0}, explen: {1}, rcvdlen: {2}, adaptationlength: {3}",
+                                packet.pid, payload.expectedlength, payload.payloadlength, packet.adaptationlength);
+                        }
                         invokeprocesspayload(payload);
                     }
                     else
@@ -118,6 +145,8 @@ namespace Protocol
                         payload.type = Payload.packettype.pes;
                         payload.expectedlength = Utils.Utils.toShort(packet.payload[4], packet.payload[5]);
                         bytestocopy = 188 - packet.headerlen;
+                        appendtopayload(payload, packet, 0, bytestocopy);
+                        /*
                         if ((payload.payloadlength + bytestocopy) > payload.maxpayloadlength)
                         {
                             log.DebugFormat("Payload does not fit in buffer ({0} + {1} > {2}.", payload.payloadlength, bytestocopy, payload.maxpayloadlength);
@@ -125,6 +154,7 @@ namespace Protocol
                         }
                         System.Buffer.BlockCopy(packet.payload, 0, payload.data, payload.payloadlength, bytestocopy);
                         payload.payloadlength = payload.payloadlength + bytestocopy;
+                        */
                     }
                     else /* table */
                     {
@@ -135,10 +165,9 @@ namespace Protocol
 
                         /* v[offset]+1 = table id */
                         payload.type = Payload.packettype.table;
-                        int pointer = packet.payload[0];
                         if (packet.payload.Length < (pointer + 3) || pointer > 184)
                         {
-                            log.Debug("Malformatted packet, clear payload");
+                            log.Debug("Malformed packet, clear payload");
                             Utils.Utils.DumpBytes(packet.buffer, packet.buffer.Length);
                             Utils.Utils.DumpBytes(packet.payload, packet.payload.Length);
                             payload.clear();
@@ -148,7 +177,8 @@ namespace Protocol
                         bytestocopy = 188 - packet.headerlen - pointer;
                         //log.DebugFormat("Store payload for PID {0}: , with exp. length: {1} and packet length: {2}, CC={3}",
                         //    packet.pid, payload.expectedlength, bytestocopy,packet.continuitycounter);
-
+                        appendtopayload(payload, packet, pointer, bytestocopy);
+                        /*
                         if ((payload.payloadlength + bytestocopy) > payload.maxpayloadlength)
                         {
                             log.DebugFormat("Payload does not fit in buffer ({0} + {1} > {2}.", payload.payloadlength, packet.payloadlength, payload.maxpayloadlength);
@@ -156,6 +186,7 @@ namespace Protocol
                         }
                         System.Buffer.BlockCopy(packet.payload, pointer, payload.data, payload.payloadlength, bytestocopy);
                         payload.payloadlength = payload.payloadlength + bytestocopy;
+                        */
                         payload.data[0] = 0;
                     }
                     if ((payload.expectedlength > 0) && payload.isComplete() && payload.type != Payload.packettype.pes)
@@ -189,8 +220,11 @@ namespace Protocol
                     else
                     {
                         int bytestocopy = 188 - packet.headerlen;
-                        System.Buffer.BlockCopy(packet.payload, 0, payload.data, payload.payloadlength, bytestocopy); /* copy payload without header */
-                        payload.payloadlength = payload.payloadlength + bytestocopy;
+                        appendtopayload(payload, packet, 0, bytestocopy);
+
+                        // System.Buffer.BlockCopy(packet.payload, 0, payload.data, payload.payloadlength, bytestocopy); /* copy payload without header */
+                        // payload.payloadlength = payload.payloadlength + bytestocopy;
+                        // payload.adaptationlength = payload.adaptationlength + packet.adaptationlength;
                     }
                     if ((payload.expectedlength > 0) && payload.isComplete())
                     {

@@ -17,7 +17,8 @@ namespace Sat2Ip
         public ushort pid { get; private set; }
         public int scramblingcontrol { get; private set; }
         public int adaptation { get; private set; }
-        public int continuitycounter { get; private set; }
+        public int adaptationlength { get; set; }
+        public int continuitycounter { get; set; }
         public int headerlen { get; private set; }
         public byte[] payload { get; internal set; }
 
@@ -65,10 +66,12 @@ namespace Sat2Ip
                 continuitycounter = (buffer[offset + 3] & 0x0F);
                 if (adaptation == 0x02 || adaptation == 0x03)
                 {
-                    headerlen = 4 + 1 + processAdaptation(buffer, offset + 4);
+                    adaptationlength = processAdaptation(buffer, offset + 4);
+                    headerlen = 4 + 1 + adaptationlength;
                 }
                 else
                 {
+                    adaptationlength = 0;
                     headerlen = 4;
                 }
                 offset += headerlen;
@@ -81,14 +84,14 @@ namespace Sat2Ip
             int adaptation_field_length = v[offset];
             if (adaptation_field_length > 0)
             {
-                int discontinuity_indicator = v[offset + 1] & 0x80 >> 7;
-                int random_access_indicator = v[offset + 1] & 0x40 >> 6;
-                int elementary_stream_priority_indicator = v[offset + 1] & 0x20 >> 5;
-                int PCR_flag = v[offset + 1] & 0x10 >> 4;
-                int OPCR_flag = v[offset + 1] & 0x08 >> 3;
-                int splicing_point_flag = v[offset + 1] & 0x04 >> 2;
-                int transport_private_data_flag = v[offset + 1] & 0x02 >> 1;
-                int adaptation_field_extension_flag = v[offset + 1] & 0x01;
+                int discontinuity_indicator = (v[offset + 1] & 0x80) >> 7;
+                int random_access_indicator = (v[offset + 1] & 0x40) >> 6;
+                int elementary_stream_priority_indicator = (v[offset + 1] & 0x20) >> 5;
+                int PCR_flag = (v[offset + 1] & 0x10) >> 4;
+                int OPCR_flag = (v[offset + 1] & 0x08) >> 3;
+                int splicing_point_flag = (v[offset + 1] & 0x04) >> 2;
+                int transport_private_data_flag = (v[offset + 1] & 0x02) >> 1;
+                int adaptation_field_extension_flag = (v[offset + 1] & 0x01);
                 offset = offset + 2;
                 if (PCR_flag == 1)
                 {
@@ -112,6 +115,7 @@ namespace Sat2Ip
                 }
                 if (transport_private_data_flag == 1)
                 {
+                    Utils.Utils.DumpBytes(v, v.Length);
                     int transport_private_data_length = v[offset];
                     byte[] privatedata = new byte[transport_private_data_length];
                     for (int i = 0; i < transport_private_data_length; i++)

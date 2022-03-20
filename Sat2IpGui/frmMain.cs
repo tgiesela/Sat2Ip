@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using UPNPLib;
 using Sat2Ip;
 using Vlc.DotNet.Core;
 using System.Reflection;
 using System.IO;
-using Descrambler;
+using System.Diagnostics;
 
 namespace Sat2IpGui
 {
@@ -28,7 +25,8 @@ namespace Sat2IpGui
         private String _currentpids = String.Empty;
         private RTSP rtsp;
         private Descrambler.Descrambler descrambler;
-        List<Channel> channels = new();
+        private List<Channel> channels = new();
+        private Process VLC;
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         public class ListBoxItem
@@ -50,6 +48,10 @@ namespace Sat2IpGui
             uribld.Host = Sat2IpGui.Properties.App.Default.IpAddressDevice;
             uribld.Port = int.Parse(Sat2IpGui.Properties.App.Default.PortDevice);
             rtsp = new RTSP(uribld.Uri);
+            rtsp.frontend = rtsp.getFreeTuner();
+            VLC = new System.Diagnostics.Process();
+            VLC.StartInfo.FileName = myVlcControl.VlcLibDirectory.FullName + "\\vlc.exe";
+            VLC.StartInfo.Arguments = "-vvv rtp://127.0.0.1:40002";
         }
         private void loadChannelsFromTransponder(SatUtils.LNB lnb)
         {
@@ -59,7 +61,7 @@ namespace Sat2IpGui
             //List<House> houseOnes = houses.Where(house => house.Name == "House 1").ToList();
             foreach (Transponder trs in lnb.getTransponders())
             {
-                foreach (Channel c in lnb.getChannelsOnTransponder(trs.frequency))
+                foreach (Channel c in lnb.getChannelsOnTransponder(trs.frequency, trs.diseqcposition))
                 {
                     if (c.isDataService() & !cbData.Checked) { continue; };
                     if (c.isRadioService() & !cbRadio.Checked) { continue; };
@@ -76,22 +78,22 @@ namespace Sat2IpGui
             lbChannels.Items.Clear();
             if (Properties.App.Default.LNB1 != "")
             {
-                m_LNB1 = new SatUtils.LNB(0);
+                m_LNB1 = new SatUtils.LNB(1);
                 loadChannelsFromTransponder(m_LNB1);
             }
             if (Properties.App.Default.LNB2 != "")
             {
-                m_LNB2 = new SatUtils.LNB(1);
+                m_LNB2 = new SatUtils.LNB(2);
                 loadChannelsFromTransponder(m_LNB2);
             }
             if (Properties.App.Default.LNB3 != "")
             {
-                m_LNB3 = new SatUtils.LNB(2);
+                m_LNB3 = new SatUtils.LNB(3);
                 loadChannelsFromTransponder(m_LNB3);
             }
             if (Properties.App.Default.LNB4 != "")
             {
-                m_LNB4 = new SatUtils.LNB(3); ;
+                m_LNB4 = new SatUtils.LNB(4); ;
                 loadChannelsFromTransponder(m_LNB4);
             }
             channels = channels.OrderBy(c => c.Servicename).ToList();
@@ -102,6 +104,20 @@ namespace Sat2IpGui
                 item.obj = c;
                 item.textToDisplay = c.Servicename;
                 lbChannels.Items.Add(item);
+            }
+            lvChannels.Columns.Clear();
+            lvChannels.Columns.Add("Channel");
+            lvChannels.Columns.Add("Freq");
+            lvChannels.Columns.Add("LNB");
+            lvChannels.View = View.Details;
+            foreach (Channel c in channels)
+            {
+                string[] values = new string[3];
+                values[0] = c.Servicename;
+                values[1] = c.transponder.frequency.ToString();
+                values[2] = c.transponder.diseqcposition.ToString();
+                ListViewItem item = new ListViewItem(values);
+                lvChannels.Items.Add(item);
             }
 
         }
@@ -150,7 +166,10 @@ namespace Sat2IpGui
                 log.Debug("URI: " + uri.ToString());
                 rtsp.commandPlay("");
                 descrambler.play();
+                myVlcControl.Show();
                 myVlcControl.Play(uri);
+                myVlcControl.Audio.Volume = 30;
+                myVlcControl.VlcMediaPlayer.Audio.Volume = 30;
             }
         }
 
@@ -170,8 +189,11 @@ namespace Sat2IpGui
         {
             myVlcControl.Stop();
             this.myVlcControl.Log -= this.OnVlcMediaPlayerLog;
-            descrambler.stop();
-            rtsp.commandTeardown("");
+            if (descrambler != null)
+            {
+                descrambler.stop();
+                rtsp.commandTeardown("");
+            }
         }
 
         private void ServerToolStripMenuItem_Click(object sender, EventArgs e)
@@ -257,6 +279,25 @@ namespace Sat2IpGui
         private void cbData_CheckedChanged(object sender, EventArgs e)
         {
             LoadChannels();
+        }
+
+        private void myVlcControl_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnVLC_Click(object sender, EventArgs e)
+        {
+            if (myVlcControl.IsPlaying)
+            { 
+                myVlcControl.Stop();
+            }
+            VLC.Start();
+        }
+
+        private void myVlcControl_VideoOutChanged(object sender, VlcMediaPlayerVideoOutChangedEventArgs e)
+        {
+            myVlcControl.VlcMediaPlayer.Audio.Volume = 30;
         }
     }
 }

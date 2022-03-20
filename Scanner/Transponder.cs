@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Sat2Ip
 {
@@ -24,13 +20,20 @@ namespace Sat2Ip
             fec_89 = 89,
             fec_35 = 35,
             fec_45 = 45,
-            fec_910 = 910
-        };
-        public enum e_mtype { qpsk, psk8 };
+            fec_910 = 910,
+            undefined = 0,
+            none = 1,
+            reserved = 2
+        }
+        public enum e_mtype { qpsk, psk8,
+            auto,
+            qam16
+        }
         public enum e_polarisation { Horizontal = 'h', Vertical = 'v', circular_left = 'l', circular_right = 'r' };
         private e_fec _fec;
         public e_fec fec { get { return _fec; } set { _fec = value; } }
         public int frequency { get; set; }
+        public decimal? frequencydecimal { get; set; }
         public int diseqcposition { get; set; }
         public int samplerate { get; set; }
         public e_polarisation polarisation { get; set; }
@@ -62,25 +65,34 @@ namespace Sat2Ip
                 case e_dvbsystem.DVB_S2: strdvbsystem = "dvbs2"; break;
                 default: throw new Exception("Unsupported dvbsystem type");
             }
-            switch (mtype)
-            {
-                case e_mtype.psk8: strmtype = "8psk"; break;
-                case e_mtype.qpsk: strmtype = "qpsk"; break;
-                default: throw new Exception("Unsupported modulation type");
-            }
-
-            return String.Format("?src={0}&freq={1}&sr={2}&pol={3}&msys={4}&plts=off&ro=0.35&fec={5}&mtype={6}", diseqcposition, frequency, samplerate, (char)polarisation, strdvbsystem, (int)_fec, strmtype);
+            if (dvbsystem == e_dvbsystem.DVB_S)
+                strmtype = "qpsk";
+            else
+                switch (mtype)
+                {
+                    case e_mtype.psk8: strmtype = "8psk"; break;
+                    case e_mtype.qpsk: strmtype = "qpsk"; break;
+                    case e_mtype.auto: strmtype = "qpsk"; break;
+                    default: throw new Exception("Unsupported modulation type for SAT2IP");
+                }
+            if (frequencydecimal.HasValue)
+                return String.Format("?src={0}&freq={1}&sr={2}&pol={3}&msys={4}&plts=off&ro=0.35&fec={5}&mtype={6}", diseqcposition, frequencydecimal.Value.ToString(System.Globalization.CultureInfo.CreateSpecificCulture("en-us")), samplerate, (char)polarisation, strdvbsystem, (int)_fec, strmtype);
+            else
+                return String.Format("?src={0}&freq={1}&sr={2}&pol={3}&msys={4}&plts=off&ro=0.35&fec={5}&mtype={6}", diseqcposition, frequency, samplerate, (char)polarisation, strdvbsystem, (int)_fec, strmtype);
 
         }
         public void polarisationFromString(string spolarisation)
         {
-            if (spolarisation.Equals("H"))
+            if (spolarisation.ToUpper().Equals("H") || spolarisation.ToUpper().Equals("HORIZONTAL"))
                 this.polarisation = e_polarisation.Horizontal;
             else
-                if (spolarisation.Equals("V"))
+                if (spolarisation.ToUpper().Equals("V") || spolarisation.ToUpper().Equals("VERTICAL"))
                     this.polarisation = e_polarisation.Vertical;
                 else
-                    this.polarisation = e_polarisation.Horizontal;
+                    if (spolarisation.ToUpper().Equals("L") || spolarisation.ToUpper().Equals("CIRCULAR_LEFT"))
+                        this.polarisation = e_polarisation.circular_left;
+                    else
+                        this.polarisation = e_polarisation.circular_right;
         }
         public void fecFromString(string sfec)
         {
@@ -130,7 +142,7 @@ namespace Sat2Ip
         }
         public void dvbsystemFromString(string sdvbtype)
         {
-            if (sdvbtype.Equals("S2"))
+            if (sdvbtype.Equals("S2") || sdvbtype.Equals("DVB_S2"))
             {
                 dvbsystem = e_dvbsystem.DVB_S2;
             }

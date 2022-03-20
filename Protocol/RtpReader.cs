@@ -14,8 +14,10 @@ namespace Sat2Ip
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private UdpClient client;
         private long lastcount=0;
+        private bool m_active = false;
 
         public int port { get; private set; }
+        public bool active { get { return m_active; } }
 
         public RtpReader(int _port)
         {
@@ -30,13 +32,20 @@ namespace Sat2Ip
             {
                 throw new Exception("Client is null");
             }
-            UdpReceiveResult taskresult = await client.ReceiveAsync();
-            RtpPacket packet = new RtpPacket(taskresult.Buffer);
-            if (packet.header.Sequencenumber != lastcount + 1)
-                if (lastcount != 0)
-                    log.DebugFormat("Packets lost: {0}-{1}", lastcount, packet.header.Sequencenumber);
-            lastcount = packet.header.Sequencenumber;
-            return packet;
+            try
+            {
+                UdpReceiveResult taskresult = await client.ReceiveAsync();
+                RtpPacket packet = new RtpPacket(taskresult.Buffer);
+                if (packet.header.Sequencenumber != lastcount + 1)
+                    if (lastcount != 0)
+                        log.DebugFormat("Packets lost: {0}-{1}", lastcount, packet.header.Sequencenumber);
+                lastcount = packet.header.Sequencenumber;
+                return packet;
+            } 
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
         public RtpPacket readSync()
         {
@@ -51,11 +60,13 @@ namespace Sat2Ip
         public void stop()
         {
             client.Close();
+            m_active = false;
         }
 
         public void start()
         {
             client = new UdpClient(port);
+            m_active = true;
         }
     }
 }

@@ -22,7 +22,7 @@ namespace Oscam
         // You should try to call decrypt_packets with more packets than the number
         // returned here for performance reasons (use get_suggested_cluster_size to know
         // how many).
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGui\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern int get_internal_parallelism();
@@ -33,36 +33,36 @@ namespace Oscam
         // Passing less packets could slow down the decryption.
         // Passing more packets is never bad (if you don't spend a lot of time building
         // the list).
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGui\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern int get_suggested_cluster_size();
 
         // -- alloc & free the key structure
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGui\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern IntPtr get_key_struct();
 
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGui\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void free_key_struct(IntPtr keys);
 
         // -- set control words, 8 bytes each
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGui\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void set_control_words(IntPtr keys, IntPtr even, IntPtr odd);
 
         // -- set even control word, 8 bytes
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGui\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void set_even_control_word([In] IntPtr keys, byte[] even);
 
         // -- set odd control word, 8 bytes
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGui\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         static extern void set_odd_control_word([In] IntPtr keys, byte[] odd);
@@ -73,12 +73,12 @@ namespace Oscam
         // -- decrypt many TS packets
         // This interface is a bit complicated because it is designed for maximum speed.
         // Please read doc/how_to_use.txt.
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGui\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,
             CallingConvention = CallingConvention.Cdecl)]
         //static extern int decrypt_packets(IntPtr keys, IntPtr[] cluster);
         static extern int decrypt_packets(IntPtr keys, [In][Out] string[] cluster);
-        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGuiNew\x64\Debug\FFdecsa.dll",
+        [DllImport(@"C:\Users\tonny.THUIS\source\repos\Sat2IpGui\x64\Debug\FFdecsa.dll",
             CharSet = CharSet.Ansi,EntryPoint = "decrypt_packets",
             CallingConvention = CallingConvention.Cdecl)]
         //static extern int decrypt_packets(IntPtr keys, IntPtr[] cluster);

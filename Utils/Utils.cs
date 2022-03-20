@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -73,6 +74,13 @@ namespace Utils
                 result = result + (((b & 0xf0) >> 4) * 10) + (b&0x0f);
             }
             return result;
+        }
+        public static string getStorageFolder()
+        {
+            String allusersprofile = Environment.GetEnvironmentVariable("ALLUSERSPROFILE");
+            String storagefolder = allusersprofile + "\\" + "Sat2IpGui\\";
+            Directory.CreateDirectory(storagefolder);
+            return storagefolder;
         }
     }
 }

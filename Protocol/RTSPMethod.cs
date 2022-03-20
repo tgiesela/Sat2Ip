@@ -28,96 +28,14 @@ namespace Sat2Ip
         private String _statusphrase;
         internal bool busy;
 
-        public string Method
-        {
-            get
-            {
-                return _method;
-            }
-
-            set
-            {
-                _method = value;
-            }
-        }
-
-        public string Body
-        {
-            get
-            {
-                return _body;
-            }
-
-            set
-            {
-                _body = value;
-            }
-        }
-
-        public IDictionary<string, string> Requestheaders
-        {
-            get
-            {
-                return _requestheaders;
-            }
-
-            set
-            {
-                _requestheaders = value;
-            }
-        }
-
-        public IDictionary<string, string> Replyheaders
-        {
-            get
-            {
-                return _replyheaders;
-            }
-
-            set
-            {
-                _replyheaders = value;
-            }
-        }
-
-        public int Cseq
-        {
-            get
-            {
-                return _cseq;
-            }
-
-            set
-            {
-                _cseq = value;
-            }
-        }
-
-        public string Responsebody
-        {
-            get
-            {
-                return _responsebody;
-            }
-
-            set
-            {
-                _responsebody = value;
-            }
-        }
-
-        public string Command
-        {
-            get
-            {
-                return _command;
-            }
-
-            set
-            {
-                _command = value;
-            }
-        }
+        public string Method { get { return _method; } set { _method = value; } }
+        public string Body { get { return _body; } set { _body = value; } }
+        public IDictionary<string, string> Requestheaders { get { return _requestheaders;} set { _requestheaders = value; } }
+        public IDictionary<string, string> Replyheaders { get { return _replyheaders; } set { _replyheaders = value; } }
+        public int Cseq { get { return _cseq; } set { _cseq = value; } }
+        public string Responsebody { get { return _responsebody; } set { _responsebody = value; } }
+        public string Command { get { return _command; } set { _command = value; } }
+        public int Status {  get { return _statuscode; } set { _statuscode = value; } }
 
         public RTSPMethod(Uri uri)
         {

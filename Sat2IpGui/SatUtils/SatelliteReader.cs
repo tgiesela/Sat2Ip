@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using System.IO;
+
 namespace Sat2IpGui.SatUtils
 {
     class SatelliteReader
@@ -41,7 +43,7 @@ namespace Sat2IpGui.SatUtils
         {
             string pattern = @"(\d+).(\d+)";
             Match m = Regex.Match(info.Orbital, pattern, RegexOptions.IgnoreCase);
-            return String.Format("{00}{1}.ini", m.Groups[1], m.Groups[2]);
+            return Utils.Utils.getStorageFolder() + String.Format("{00}{1}.ini", m.Groups[1], m.Groups[2]);
         }
 
         internal string getSatelliteName(SatelliteInfo info)

@@ -475,18 +475,6 @@ namespace Oscam
                             //int i = 0;
                             int offset = 1;
                             int tablelen = packet.expectedlength;
-                            //if ((packet.data[offset + i] & flt.Filtermask[i]) == flt.Filterdata[i])
-                            //{
-                            //    for (i = 1; i < flt.Filterdata.Length; i++)
-                            //    {
-                            //        if ((packet.data[offset + i + 2] & flt.Filtermask[i]) != (flt.Filterdata[i] & flt.Filtermask[i]))
-                            //        {
-                            //            break;
-                            //        }
-                            //    }
-                            //}
-                            //if (i == flt.Filtermask.Length)
-                            //{
                             if (testlikeoscam(packet.data, offset, tablelen + 1, flt)) { 
                                 log.Debug(String.Format("Filter matched, starting from offset: {0}, tablelength: {1}, pid: {2}, filternr: {3}", offset, tablelen+2, packet.payloadpid, flt.Filternr));
                                 sendFilterdata(packet.data, offset, tablelen + 3 , flt.Filternr);
