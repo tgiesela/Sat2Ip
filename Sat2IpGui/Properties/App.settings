@@ -2,29 +2,5 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Sat2IpGui.Properties" GeneratedClassName="App">
   <Profiles />
   <Settings>
-    <Setting Name="LNB1" Type="System.String" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
-    <Setting Name="LNB2" Type="System.String" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
-    <Setting Name="LNB3" Type="System.String" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
-    <Setting Name="LNB4" Type="System.String" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
-    <Setting Name="IpAddressDevice" Type="System.String" Scope="User">
-      <Value Profile="(Default)">10.56.57.55</Value>
-    </Setting>
-    <Setting Name="PortDevice" Type="System.String" Scope="User">
-      <Value Profile="(Default)">554</Value>
-    </Setting>
-    <Setting Name="OscamServer" Type="System.String" Scope="User">
-      <Value Profile="(Default)">10.56.57.155</Value>
-    </Setting>
-    <Setting Name="OscamPort" Type="System.String" Scope="User">
-      <Value Profile="(Default)">9000</Value>
-    </Setting>
   </Settings>
 </SettingsFile>

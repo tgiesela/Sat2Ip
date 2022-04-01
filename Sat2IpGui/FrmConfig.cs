@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Sat2IpGui.SatUtils;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -18,46 +19,43 @@ namespace Sat2IpGui
     {
         List<SatUtils.SatelliteInfo> listinfo;
         private SatUtils.SatelliteReader satreader;
+        private Config config;
+        private CheckBox[] checkboxes;
+        private ComboBox[] comboboxes;
         public FrmConfig()
         {
             InitializeComponent();
-            cbLNB1.Checked = !Properties.App.Default.LNB1.Equals("");
-            cbLNB2.Checked = !Properties.App.Default.LNB2.Equals("");
-            cbLNB3.Checked = !Properties.App.Default.LNB3.Equals("");
-            cbLNB4.Checked = !Properties.App.Default.LNB4.Equals("");
-            txtOscamserver.Text = Properties.App.Default.OscamServer;
-            txtOscamport.Text = Properties.App.Default.OscamPort;
+            checkboxes = new CheckBox[] { cbLNB1, cbLNB2, cbLNB3, cbLNB4 };
+            comboboxes = new ComboBox[] { cmbSatellites1, cmbSatellites2, cmbSatellites3, cmbSatellites4 };
 
-            cmbSatellites1.Enabled = false;
-            cmbSatellites2.Enabled = false;
-            cmbSatellites3.Enabled = false;
-            cmbSatellites4.Enabled = false;
             satreader = new SatUtils.SatelliteReader();
             listinfo = satreader.read(@"satellites.csv");
-            LoadSatellites(cmbSatellites1);
-            LoadSatellites(cmbSatellites2);
-            LoadSatellites(cmbSatellites3);
-            LoadSatellites(cmbSatellites4);
-            if (cbLNB1.Checked)
+            config = new Config();
+            config.load();
+
+            for (int i = 0; i < comboboxes.Length; i++)
             {
-                cmbSatellites1.Enabled = true;
-                Debug.WriteLine(Properties.App.Default.LNB1);
-                cmbSatellites1.SelectedItem = Properties.App.Default.LNB1;
+                LoadSatellites(comboboxes[i]);
             }
-            if (cbLNB2.Checked)
+            if (config.configitems != null)
             {
-                cmbSatellites2.Enabled = true;
-                cmbSatellites2.SelectedItem = Properties.App.Default.LNB2;
-            }
-            if (cbLNB3.Checked)
-            {
-                cmbSatellites3.Enabled = true;
-                cmbSatellites3.SelectedItem = Properties.App.Default.LNB3;
-            }
-            if (cbLNB4.Checked)
-            {
-                cmbSatellites4.Enabled = true;
-                cmbSatellites4.SelectedItem = Properties.App.Default.LNB4;
+                for (int i = 0; i < config.configitems.lnb.Length; i++)
+                {
+                    if (config.configitems.lnb[i] != null)
+                    {
+                        checkboxes[i].Checked = true;
+                        comboboxes[i].Enabled = true;
+                        comboboxes[i].SelectedItem = config.configitems.lnb[i].satellitename;
+                    }
+                    else
+                    {
+                        checkboxes[i].Checked = false;
+                        comboboxes[i].Enabled = false;
+                        comboboxes[i].SelectedItem = -1;
+                    }
+                }
+                txtOscamserver.Text = config.configitems.OscamServer;
+                txtOscamport.Text = config.configitems.OscamPort;
             }
         }
 
@@ -72,37 +70,28 @@ namespace Sat2IpGui
         private async void BtnOK_Click(object sender, EventArgs e)
         {
             Task task;
-            Properties.App.Default.LNB1 = "";
-            Properties.App.Default.LNB2 = "";
-            Properties.App.Default.LNB3 = "";
-            Properties.App.Default.LNB4 = "";
-            if (cbLNB1.Checked)
+            for (int i = 0; i < checkboxes.Length; i++)
             {
-                Properties.App.Default.LNB1 = cmbSatellites1.Text;
-                task = DownloadFrequenciesAsync(cmbSatellites1.SelectedIndex);
-                await task;
+                if (checkboxes[i].Checked)
+                {
+                    if (config.configitems.lnb[i] == null)
+                    {
+                        config.configitems.lnb[i] = new LNB(i+1);
+                    }
+                    config.configitems.lnb[i].satellitename = comboboxes[i].Text;
+                    config.configitems.lnb[i].diseqcposition = i + 1;
+                    task = DownloadFrequenciesAsync(cmbSatellites1.SelectedIndex);
+                    await task;
+                }
+                else
+                {
+                    config.configitems.lnb[i] = null;
+                }
             }
-            if (cbLNB2.Checked)
-            { 
-                Properties.App.Default.LNB2 = cmbSatellites2.Text;
-                task = DownloadFrequenciesAsync(cmbSatellites2.SelectedIndex);
-                await task;
-            }
-            if (cbLNB3.Checked)
-            {
-                Properties.App.Default.LNB3 = cmbSatellites3.Text;
-                task = DownloadFrequenciesAsync(cmbSatellites3.SelectedIndex);
-                await task;
-            }
-            if (cbLNB4.Checked)
-            {
-                Properties.App.Default.LNB4 = cmbSatellites4.Text;
-                task = DownloadFrequenciesAsync(cmbSatellites4.SelectedIndex);
-                await task;
-            }
-            Properties.App.Default.OscamServer = txtOscamserver.Text;
-            Properties.App.Default.OscamPort = txtOscamport.Text;
-            Properties.App.Default.Save();
+
+            config.configitems.OscamServer = txtOscamserver.Text;
+            config.configitems.OscamPort = txtOscamport.Text;
+            config.save();
         }
 
         private async Task DownloadFrequenciesAsync(int selectedIndex)

@@ -5,9 +5,35 @@ using System.Text;
 using System.Threading.Tasks;
 using Interfaces;
 using Protocol;
+using static Interfaces.DVBBase;
 
 namespace Sat2Ip
 {
+    /* Excerpt from TS 101 211 (https://www.etsi.org/deliver/etsi_ts/101200_101299/101211/01.12.01_60/ts_101211v011201p.pdf)
+     * 
+     * For terrestrial delivery systems bandwidth within a single transmitted TS is a valuable resource and in order to
+     * safeguard the bandwidth allocated to the primary services receivable from the actual multiplex, the following minimum
+     * repetition rates are specified in order to reflect the need to impose a limit on the amount of available bandwidth used for
+     * this purpose:
+     * a) all sections of the NIT shall be transmitted at least every 10 s;
+     * b) all sections of the BAT shall be transmitted at least every 10 s, if present;
+     * c) all sections of the SDT for the actual multiplex shall be transmitted at least every 2 s;
+     * d) all sections of the SDT for other TSs shall be transmitted at least every 10 s if present;
+     * e) the TDT shall be transmitted at least every 30 s;
+     * f) the TOT (if present) shall be transmitted at least every 30 s;
+     * g) all sections of the EIT Present/Following Table for the actual multiplex shall be transmitted at least every 2 s;
+     * h) all sections of the EIT Present/Following Tables for other TSs shall be transmitted at least every 20 s if present.
+     * 
+     * The repetition rates for further EIT tables will depend greatly on the number of services and the quantity of related SI
+     * information. The following transmission intervals should be followed if practicable but they may be increased as the use
+     * of EIT tables is increased. The times are the consequence of a compromise between the acceptable provision of data to a
+     * viewer and the use of multiplex bandwidth.
+     * 
+     * a) all sections of the EIT Schedule table for the first full day for the actual TS, should be transmitted at least every 10 s, if present;
+     * b) all sections of the EIT Schedule table for the first full day for other TSs, should be transmitted at least every 60 s, if present;
+     * c) all sections of the EIT Schedule table for the actual TS, should be transmitted at least every 30 s, if present;
+     * d) all sections of the EIT Schedule table for other TSs, should be transmitted at least every 300 s, if present
+     */
     public class Scanner
     {
         private RtpReader reader;
@@ -28,34 +54,34 @@ namespace Sat2Ip
         private int _portdata;
         private int _portreport;
         private List<Channel> pids;
+        private List<Bouquet> m_bouquets = new();
+        private List<Bouquet> m_sessionbouquets = new(); /* Bouquets found during this scan */
+        private List<Network> m_sessionnetworks = new(); /* Networks found during this scan */
+        private FastScanBouquet m_fstnetw;
         private String scanquery;
         private RTSP rtsp;
         private Payloads payloads;
         private List<Transponder> nit = new();
-        private List<Network> _networks = new();
+        private List<Network> m_networks = new();
         private bool[] sdtsectionprocessed;
         private bool[] patsectionprocessed;
+        private bool[] batsectionprocessed;
         Dictionary<int, bool[]> pmtsections;
-        struct structHeader
-        {
-		    public int syntaxindicator;
-            public short sectionlength;
-            public int streamid;
-            public int programnumber;
-            public int versionnr;
-            public int currNextInd;
-            public int sectionnr;
-            public int lastsectionnr;
-        }; 
         private bool patreceived;
+        private bool batreceived;
         private bool expectNIT;
         private bool sdtreceived;
         private bool catreceived;
         private bool nitreceived;
-        private Transponder _transponder;
-        private bool scancomplete;
-        public List<Network> networks { get { return _networks; } set { _networks = value; } }
-        public Transponder Transponder { get { return _transponder; } set { _transponder = value; } }
+        private Transponder m_transponder;
+        private Bouquet m_bouquet;
+        private Stopwatch m_stopwatch;
+        private bool fstnetworkreceived;
+        private bool m_fastscan;
+
+        public List<Network> networks { get { return m_networks; } set { m_networks = value; if (m_networks == null) m_networks = new(); } }
+        public List<Bouquet> bouquets { get { return m_bouquets; } set { m_bouquets = value; if (m_bouquets == null) m_bouquets = new(); } }
+        public Transponder Transponder { get { return m_transponder; } set { m_transponder = value; } }
 
         public int SCANTIMEOUT { get; private set; }
         public Scanner(int portdata, int portreport, RTSP rtsp)
@@ -67,11 +93,13 @@ namespace Sat2Ip
 
             this.rtsp = rtsp;
             patreceived = false;
+            batreceived = false;
             sdtreceived = false;
             catreceived = false;
             nitreceived = false;
-            scancomplete = false;
-            SCANTIMEOUT = 15000;/* Default 10 seconds timeout */
+            fstnetworkreceived = false;
+            m_fastscan = false;
+            SCANTIMEOUT = 20000;/* Default 20 seconds timeout */
         }
         public void stop()
         {
@@ -82,54 +110,92 @@ namespace Sat2Ip
         public async Task<List<Channel>> scan(Transponder transponder)
         {
             patreceived = false;
+            batreceived = false;
             sdtreceived = false;
             catreceived = false;
             nitreceived = false;
             expectNIT = false;
-            scancomplete = false;
             sdtsectionprocessed = null;
             patsectionprocessed = null;
             pmtsections = new Dictionary<int, bool[]>();
+            m_sessionbouquets = new();
+            m_sessionnetworks = new();
             pids = new List<Channel>();
             payloads = new Payloads(processpayload);
 
             log.DebugFormat("Scanning transponder: {0}", transponder.frequency);
-            _transponder = transponder;
-            scanquery = _transponder.getQuery();
-            scanquery = scanquery + "&pids=0,1";
-            rtsp.commandSetup(scanquery);
-            rtsp.commandPlay("?addpids=0,1");
-
             Task scantask = ReadData();
+            m_transponder = transponder;
+            scanquery = m_transponder.getQuery();
+            scanquery = scanquery + "&pids=0,1,17";
+            rtsp.commandSetup(scanquery);
+            rtsp.commandPlay("?addpids=0,1,17");
+
             await scantask;
             rtsp.commandTeardown("");
             log.DebugFormat("Scanning transponder complete: {0}, channels: {1}", transponder.frequency, pids.Count);
             return pids;
         }
+        public async Task<FastScanBouquet> scanfast(FastScanLocation location, Transponder tsp)
+        {
+            fstnetworkreceived = false;
+            m_fstnetw = new FastScanBouquet();
+            m_fstnetw.network = new Network();
+            m_fstnetw.location = location;
+            m_fastscan = true;
+            log.DebugFormat("Fast Scan transponder: {0} - {1}", location.frequency, location.name);
+
+            Channel channel = new Channel(location.pid, tsp);
+            channel.Programnumber = location.pid;
+            log.DebugFormat("Add channel for fastscan {0}. Program number: {1}", location.name, location.pid);
+            pids = new List<Channel>();
+            pids.Add(channel);
+            payloads = new Payloads(processpayload);
+
+            Task scantask = ReadData();
+            scanquery = tsp.getQuery();
+            scanquery = scanquery + "&pids=" + location.pid;
+            rtsp.commandSetup(scanquery);
+            rtsp.commandPlay("?addpids=" + location.pid);
+
+            await scantask;
+            rtsp.commandTeardown("");
+            log.DebugFormat("Scanning transponder complete: {0}, channels: {1}", tsp.frequency, pids.Count);
+            return m_fstnetw;
+        }
+
         protected void OnNITReceived()
         {
-            log.Debug("NIT Received and processed\n");
-            rtsp.commandPlay("?delpids=16");
+            log.Debug("NIT Received and processed");
             nitreceived = true;
-            if (sdtreceived)
+            if (m_stopwatch.Elapsed.TotalSeconds > 10) /* No more NIT expected */
             {
-                scancomplete = true;
+                rtsp.commandPlay("?delpids=16");
             }
         }
         protected void OnCATReceived()
         {
-            log.Debug("CAT Received and processed\n");
+            log.Debug("CAT Received and processed");
             catreceived = true;
             rtsp.commandPlay("?delpids=1");
         }
+        protected void OnBATReceived()
+        {
+            log.DebugFormat("BAT received and processed: id {0} ({0:X}), name: {1}",m_bouquet.bouquet_id, m_bouquet.bouquet_name);
+            if (m_stopwatch.Elapsed.TotalSeconds > 10) /* No more BAT expected */
+            {
+                batreceived = true;
+                if (sdtreceived)
+                    rtsp.commandPlay("?delpids=17");
+            }
+        }
         protected void OnPATReceived(EventArgs e)
         {
-            /* pids is now populated */
             patreceived = true;
-            String strpids = String.Empty;
             rtsp.commandPlay("?delpids=0");
 
-            strpids = "17";
+            /* pids is now populated, add pid=17 for BAT and SDT */
+            string strpids = "17";
             foreach (Channel channel in pids)
             {
                 if (channel.Programpid == 0)
@@ -143,39 +209,18 @@ namespace Sat2Ip
         }
         protected void OnPMTReceived(int payloadpid)
         {
-            if (expectNIT)
-            {
-                if (nitreceived && sdtreceived)
-                    scancomplete = true;
-            }
-            else
-            {
-                if (sdtreceived)
-                    scancomplete = true;
-            }
             rtsp.commandPlay("?delpids=" + payloadpid);
         }
         protected void OnSDTReceived()
         {
             /* pids is now populated */
             sdtreceived = true;
-            //String strpids = String.Empty;
-            //reader.stop();
-            if (expectNIT)
-            {
-                if (nitreceived)
-                    scancomplete = true;
-            }
-            else
-            {
-                scancomplete = true;
-            }
-            rtsp.commandPlay("?delpids=17"); 
+            if (batreceived)
+                rtsp.commandPlay("?delpids=17"); 
         }
         public class PATReceivedArgs : EventArgs
         {
             public List<Channel> pids { get; set; }
-
             public PATReceivedArgs(List<Channel> pids)
             {
                 this.pids = pids;
@@ -184,7 +229,6 @@ namespace Sat2Ip
         public class SDTReceivedArgs : EventArgs
         {
             public List<Channel> pids { get; set; }
-
             public SDTReceivedArgs(List<Channel> pids)
             {
                 this.pids = pids;
@@ -193,38 +237,68 @@ namespace Sat2Ip
         public class ScanresultArgs : EventArgs
         {
             public List<Channel> pids { get; set; }
-
             public ScanresultArgs(List<Channel> pids)
             {
                 this.pids = pids;
             }
         }
-
         private async Task ReadData()
         {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
+            m_stopwatch = new Stopwatch();
+            m_stopwatch.Start();
 
             reader.start();
             Task<RtpPacket> task = reader.readAsync();
             RtpPacket packet = await task;
             while (reader.active == true && 
-                   scancomplete == false && 
+                   isComplete() == false && 
                    packet != null && 
-                   (stopwatch.ElapsedMilliseconds < SCANTIMEOUT))
+                   (m_stopwatch.ElapsedMilliseconds < SCANTIMEOUT))
             {
                 task = reader.readAsync();
                 processMpeg2Packets(packet);
                 packet = await task;
             }
             reader.stop();
-            if (!scancomplete)
+            if (!isComplete())
                 log.Debug("Not all expected data received, SCAN timeout occurred");
 
+            foreach (Bouquet b in m_bouquets.ToArray())
+            {
+                if (!b.complete)
+                {
+                    m_bouquets.Remove(b);
+                }
+            }
+            foreach (Network n in m_networks.ToArray())
+            {
+                if (!n.complete)
+                {
+                    m_networks.Remove(n);
+                }
+            }
             log.Debug("ReadData completed, no more ASYNC I/O Pending");
-            stopwatch.Stop();
+            m_stopwatch.Stop();
         }
-
+        private bool isComplete()
+        {
+            if (m_fastscan)
+                if (fstnetworkreceived)
+                    return true;
+            if (!batreceived && m_stopwatch.Elapsed.TotalSeconds > 10)
+                batreceived = true; /* BAT is optional, so if not received within the transmission interval, assume it was there */
+            if (sdtreceived && patreceived && batreceived)
+            {
+                if (expectNIT)
+                {
+                    if (nitreceived)
+                        return true;
+                }
+                else
+                    return true;
+            }
+            return false;
+        }
         private void processMpeg2Packets(RtpPacket packet)
         {
             int lenprocessed = 0;
@@ -232,7 +306,7 @@ namespace Sat2Ip
             byte[] rtpPayload = packet.getPayload();
             byte[] payloadpart;
             Payload payload;
-            while (lenprocessed < rtpPayload.Length && scancomplete == false) 
+            while (lenprocessed < rtpPayload.Length && isComplete() == false) 
             {
                 payloadpart = packet.getPayload(lenprocessed, 188);
                 mp2Packet = new Mpeg2Packet(payloadpart);
@@ -251,76 +325,149 @@ namespace Sat2Ip
             }
 
         }
+        private void processBAT(byte[] msg)
+        {
+            Span<byte> span = msg;
+            byte[] v = span.Slice(1).ToArray();
 
+            tableHeader hdr = getHeader(v);
+            m_bouquet = m_sessionbouquets.Find(x => x.bouquet_id == hdr.streamid);
+            if (m_bouquet == null)
+            {
+                m_bouquet = new();
+                m_bouquet.bouquet_id = hdr.streamid;
+                m_bouquet.transponder = this.m_transponder;
+                m_sessionbouquets.Add(m_bouquet);
+            }
+
+            //m_bouquet = findBouquet(hdr.streamid);
+            if (m_bouquet.complete) return;
+
+            try
+            {
+                if (msg.Length < hdr.sectionlength)
+                {
+                    log.DebugFormat("Short payload! Length msg: {0}, Length header: {1}", v.Length, hdr.sectionlength);
+                    return;
+                }
+                m_bouquet.addsection(hdr, span.Slice(8));
+                if (m_bouquet.complete)
+                {
+                    Bouquet existing_bouquet = m_bouquets.Find(x => x.bouquet_id == m_bouquet.bouquet_id);
+                    if (existing_bouquet == null)
+                        m_bouquets.Add(m_bouquet);
+                    else
+                    {
+                        m_bouquets.Remove(existing_bouquet);
+                        m_bouquets.Add(m_bouquet);
+                    }
+                    OnBATReceived();
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Debug("Malformed BAT!! Exception is :" + ex.Message);
+            }
+        }
         private void processpayload(Payload payload)
         {
-            log.Debug("Process payload with length: " + payload.payloadlength);
+            //log.DebugFormat("Process payload for PID {0} with length: {1}", payload.payloadpid, payload.payloadlength);
             //Utils.Utils.DumpBytes(payload.data, payload.expectedlength);
             int payloadpid = payload.payloadpid;
-            int pointer = payload.data[0];
             int tableid;
-            if (pointer > payload.expectedlength)
-            {
-                log.Debug("Pointer points after expected length, malformed packet");
-                return;
-            }
             if (payloadpid == 0) /* PAT Program Association Table */
             {
                 if (patreceived == true)
                     return;
-                pointer = payload.data[0];
-                tableid = payload.data[pointer+1];
+                tableid = payload.data[0];
                 if (tableid == 0x00)
                 {
-                    processPAT(payload.getDatapart(pointer, payload.expectedlength - pointer));
+                    processPAT(payload.getDatapart(0, payload.expectedlength));
                 }
                 else if (tableid == 0x40) /* We do not use 0x41 which is another network */
                 {
-                    processNIT(payload.getDatapart(pointer, payload.expectedlength - pointer));
+                    processNIT(payload.getDatapart(0, payload.expectedlength));
                 }
             }
             else if (payloadpid == 1) /* CAT Conditional Access Table */
             {
                 if (catreceived == true)
                     return;
-                pointer = payload.data[0];
-                tableid = payload.data[pointer+1];
+                tableid = payload.data[0];
                 if (tableid == 0x01)
                 {
-                    processCAT(payload.getDatapart(pointer, payload.expectedlength - pointer));
+                    processCAT(payload.getDatapart(0, payload.expectedlength));
                 }
             }
-            else if (payloadpid == 0x11)   /* SDT (Service Description Table */
+            else if (payloadpid == 0x11)   /* SDT (Service Description Table) or BAT (Bouquet Association Table) */
             {
-                pointer = payload.data[0];
-                tableid = payload.data[pointer+1];
-                if (tableid == 0x42 ) /* We only process the SDT for the current network (0x42), other network (0x46) is ignored*/
+                tableid = payload.data[0];
+                //log.DebugFormat("Processing table-id: {0} (0x{0:X})", tableid);
+                switch (tableid)
                 {
-                    processSDT(payload.getDatapart(pointer, payload.expectedlength - pointer));
+                    case 0x42: processSDT(payload.getDatapart(0, payload.expectedlength)); break;
+                    case 0x4A: processBAT(payload.getDatapart(0, payload.expectedlength)); break;
+                    case 0x46: /* We only process the SDT for the current network (0x42), other network (0x46) is ignored*/ break;
+                    default: log.DebugFormat("payload with unsupported table type: {0}", tableid); break;
                 }
             }
             else if (isKnownPid(payloadpid))
             {
-                pointer = payload.data[0];
-                tableid = payload.data[pointer+1];
-                if (tableid == 0x02)
+                //pointer = payload.data[0];
+                tableid = payload.data[0];
+                switch (tableid)
                 {
-                    processPMT(payload.getDatapart(pointer, payload.expectedlength - pointer),payload.payloadpid);
-                }
-                else
-                if (tableid == 0x40) /* We do not use 0x41 which is another network */
-                {
-                    processNIT(payload.getDatapart(pointer, payload.expectedlength - pointer));
-                }
-                else
-                {
-                    log.DebugFormat("payload with unsupported table type: {0}", tableid);
+                    case 0x02: processPMT(payload.getDatapart(0, payload.expectedlength), payload.payloadpid); break;
+                    case 0x40: processNIT(payload.getDatapart(0, payload.expectedlength)); break;
+                    case 0x41: /* We do not use 0x41 which is NIT of another network */ break;
+                    case 0x72: /* Stuffing table */ break;
+                    case 0xbc: processFSTNetwork(payload.getDatapart(0, payload.expectedlength)); break;
+                    case 0xbd: processFSTLCN(payload.getDatapart(0, payload.expectedlength)); break;
+                    default: log.DebugFormat("payload with unsupported table type: {0}", tableid); break; 
                 }
             }
         }
-        private structHeader getHeader(byte[] pTable)
+
+        private void processFSTNetwork(byte[] msg)
         {
-            structHeader header = new structHeader();
+            /* Similar to NIT, except everything is considered to be one network */
+
+            log.Debug("FST Network received");
+            Span<byte> span = msg;
+            byte[] v = span.Slice(1).ToArray();
+            tableHeader hdr = getHeader(v);
+
+            try
+            {
+                if (msg.Length < hdr.sectionlength)
+                {
+                    log.DebugFormat("Short payload! Length msg: {0}, Length header: {1}", v.Length, hdr.sectionlength);
+                    return;
+                }
+                int networkid = hdr.streamid;
+                m_fstnetw.network.addsection(hdr, span.Slice(8));
+                log.DebugFormat("Section {0} of FST Network processed", hdr.sectionnr);
+                if (m_fstnetw.network.complete)
+                {
+                    log.DebugFormat("All sections of current FST Network received");
+                    fstnetworkreceived = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Debug("Malformed FST Network section!! Exception is :" + ex.Message);
+            }
+
+        }
+
+        private void processFSTLCN(byte[] vs)
+        {
+            //throw new NotImplementedException();
+        }
+
+        private tableHeader getHeader(byte[] pTable)
+        {
+            tableHeader header = new tableHeader();
             if (pTable.Length < 7)
             {
                 log.Debug("Short header received");
@@ -366,17 +513,18 @@ namespace Sat2Ip
             Table section legend
             */
             Span<byte> span = msg;
-            byte [] v = span.Slice(2).ToArray();
+            byte [] v = span.Slice(1).ToArray();
             int nrofsections;
 
             if (patreceived == true) return;
 
-            structHeader hdr = getHeader(v);
+            tableHeader hdr = getHeader(v);
             if (msg.Length < hdr.sectionlength)
             {
                 log.DebugFormat("Short payload! Length msg: {0}, Length header: {1}", v.Length, hdr.sectionlength);
                 return;
             }
+            m_transponder.transportstreamid = (ushort)hdr.streamid;
             if (patsectionprocessed == null || patsectionprocessed.Length != (hdr.lastsectionnr + 1))
             {
                 patsectionprocessed = new bool[hdr.lastsectionnr + 1];
@@ -395,14 +543,14 @@ namespace Sat2Ip
                 if (program_number == 0)
                 {
                     network_pid = (Utils.Utils.toShort((byte)(v[9 + (i * 4)] & 0x1F), v[10 + (i * 4)]));
-                    channel = new Channel(network_pid, _transponder);
+                    channel = new Channel(network_pid, m_transponder);
                     log.DebugFormat("Expect to receive NIT on PID: {0}", network_pid);
                     expectNIT = true;
                 }
                 else
                 {
                     program_map_pid = (Utils.Utils.toShort((byte)(v[9 + (i * 4)] & 0x1F), v[10 + (i * 4)]));
-                    channel = new Channel(program_map_pid, _transponder);
+                    channel = new Channel(program_map_pid, m_transponder);
                 }
                 channel.Programnumber = program_number;
                 log.DebugFormat("Add channel. Program number: {0}, network_pid: {1}, program_map_pid: {2}", program_number, network_pid, program_map_pid);
@@ -418,10 +566,8 @@ namespace Sat2Ip
             patreceived = true;
             OnPATReceived(new PATReceivedArgs(pids));
         }
-
         private void processPMT(byte[] msg, int payloadpid)
         {
-            log.DebugFormat("PMT received for PID: {0}, datalen: {1}", payloadpid, msg.Length);
             /*
              * TS_program_map_section( ) {
                 table_id                    8
@@ -461,11 +607,12 @@ namespace Sat2Ip
              }
              */
             Span<byte> span = msg;
-            byte[] v = span.Slice(2).ToArray();
+            byte[] v = span.Slice(1).ToArray();
 
-            structHeader hdr = getHeader(v);
+            tableHeader hdr = getHeader(v);
             if (!pmtsections.ContainsKey(payloadpid))
             {
+                log.DebugFormat("PMT received for PID: {0}, datalen: {1}", payloadpid, msg.Length);
                 pmtsections.Add(payloadpid, new bool[hdr.lastsectionnr + 1]);
             }
             bool[] pmtsectionprocessed = pmtsections[payloadpid];
@@ -546,17 +693,17 @@ namespace Sat2Ip
                 Table section legend
             */
             Span<byte> span = msg;
-            byte[] v = span.Slice(2).ToArray();
+            byte[] v = span.Slice(1).ToArray();
 
             if (catreceived == true) return;
-            structHeader hdr = getHeader(v);
+            tableHeader hdr = getHeader(v);
             int sectionbytesprocessed = 7;
             /* Section length is length starting after length including the CRC (3 + 4 = 7) */
             while (sectionbytesprocessed < (hdr.sectionlength - 7))
             {
                 int descriptorid = v[sectionbytesprocessed];
                 int descriptorlength = (v[sectionbytesprocessed + 1] & 0xff);
-                log.DebugFormat("CAT: desciptorid = {0}, descriptorlength={1}\n", descriptorid.ToString("X"), descriptorlength);
+                //log.DebugFormat("CAT: desciptorid = {0}, descriptorlength={1}", descriptorid.ToString("X"), descriptorlength);
                 sectionbytesprocessed += 2 + descriptorlength;
             }
             OnCATReceived();
@@ -564,56 +711,27 @@ namespace Sat2Ip
         private void processNIT(byte[] msg)
         {
             /*
-            service_description_section()
-            {
-        0	table_id                        8
-        1	section_syntax_indicator        1
-            reserved_future_use             1
-            reserved                        2
-            section_length                  12
-        3	transport_stream_id             16
-        5	reserved                        2
-            version_number                  5
-            current_next_indicator          1
-        6	section_number                  8
-        7	last_section_number             8
-        8	reserved_future_use             4
-            network_descriptors_length		12
-        10	for(j=0;j<N;j++)
-            {
-                descriptor()
-            }
-            reserved_future_use             4
-            transport_stream_loop_length	12
-            for(i=0;i<N;i++)
-            {
-                transport_stream_id         16
-                original_network_id			16
-                reserved_future_use         4
-                transport_descriptors_length	12
-                for(j=0;j<N;j++)
-                {
-                    descriptor()
-                }
-            }
-            CRC_32                          32
-
             tableid 0x40, 0x41
             */
             bool currentnetwork;
             Span<byte> span = msg;
-            byte[] v = span.Slice(2).ToArray();
-            structHeader hdr = getHeader(v);
+            byte[] v = span.Slice(1).ToArray();
+            tableHeader hdr = getHeader(v);
             int networkid = hdr.streamid;
-            Network netw = _networks.Find(x => x.networkid == hdr.streamid);
+            Network netw = m_sessionnetworks.Find(x => x.networkid == hdr.streamid);
             if (netw == null)
             {
-                netw = new();
+                netw = new(m_transponder.diseqcposition);
                 netw.networkid = hdr.streamid;
-                _networks.Add(netw); 
+                m_sessionnetworks.Add(netw);
+            }
+            else
+            {
+                if (netw.complete)
+                    return;
             }
             nit = netw.transponders;
-            if (msg[1] == 0x40)
+            if (msg[0] == 0x40)
             {
                 currentnetwork = true;  
             }
@@ -621,167 +739,35 @@ namespace Sat2Ip
             {
                 currentnetwork = false;
             }
-
-            log.Debug("NIT received");
-            if (!netw.nitcomplete)
+            try
             {
-                try
+                if (msg.Length < hdr.sectionlength)
                 {
-                    short network_descriptors_length = (short)(((v[7] & 0x0F) << 8) | (v[8] & 0xff));
+                    log.DebugFormat("Short payload! Length msg: {0}, Length header: {1}", v.Length, hdr.sectionlength);
+                    return;
+                }
 
-                    int offset = 9; /* points to network descriptors */
-                    if (msg.Length < (offset + network_descriptors_length))
+                log.Debug("NIT received");
+                netw.addsection(hdr, span.Slice(8));
+                if (netw.complete && currentnetwork)
+                {
+                    log.DebugFormat("All sections of current NIT received");
+                    Network existing_network = m_networks.Find(x => x.networkid == netw.networkid);
+                    if (existing_network == null)
+                        m_networks.Add(netw);
+                    else
                     {
-                        log.Debug("Message too short!");
-                        return;
+                        m_networks.Remove(existing_network);
+                        m_networks.Add(netw);
                     }
-                    int bytesprocessed = 0;
-                    while (bytesprocessed < (network_descriptors_length))
-                    {
-                        bytesprocessed += processnetworkdescriptor(v, offset + bytesprocessed, netw);
-                    }
-                    offset = offset + bytesprocessed;
-                    short transport_stream_loop_length = (short)(((v[offset + 0] & 0x0F) << 8) | (v[offset + 1] & 0xff));
-                    bytesprocessed = 0;
-                    offset += 2;
-                    if (msg.Length < (offset + transport_stream_loop_length))
-                    {
-                        log.Debug("Message too short!");
-                        return;
-                    }
-                    while (bytesprocessed < transport_stream_loop_length)
-                    {
-                        bytesprocessed += processtransportstream(v, offset + bytesprocessed);
-                    }
-
-                    log.DebugFormat("Section {0} of NIT processed", hdr.sectionnr);
-                    netw.sectionprocessed(hdr.sectionnr, hdr.lastsectionnr);
-                }
-                catch (Exception ex)
-                {
-                    log.Debug("Malformed NIT!! Exception is :" + ex.Message);
+                    OnNITReceived();
                 }
             }
-
-            if (netw.nitcomplete && currentnetwork)
+            catch (Exception ex)
             {
-                log.DebugFormat("All sections of current NIT received");
-                OnNITReceived();
+                log.Debug("Malformed NIT section!! Exception is :" + ex.Message);
             }
-
         }
-
-        private int processtransportstream(byte[] v, int offset)
-        {
-            short transport_stream_id = (short)((v[offset + 0] << 8) | (v[offset + 1] & 0xff));
-            short original_network_id = (short)((v[offset + 2] << 8) | (v[offset + 3] & 0xff));
-            short transport_descriptors_length = (short)(((v[offset + 4] & 0x0F) << 8) | (v[offset + 5] & 0xff));
-            int descriptorlengthprocessed = 0;
-            offset += 6;
-            log.DebugFormat("Transport stream id: {0} on network {1}", transport_stream_id, original_network_id);
-            log.DebugFormat("     received length: {0}, expected length {1}", v.Length, transport_descriptors_length);
-            while (descriptorlengthprocessed < transport_descriptors_length)
-            {
-                descriptorlengthprocessed += processtransportdescriptor(v, offset + descriptorlengthprocessed);
-            }
-            return descriptorlengthprocessed + 6;
-        }
-
-        private int processtransportdescriptor(byte[] v, int offset)
-        {
-            /* Details: see a38_dvb-si_specification */
-            int id = (int)v[offset];
-            int length = (int)v[offset + 1];
-            if (id == 0x43)
-            {
-                byte[] frequency = new byte[4];
-                Array.Copy(v, offset + 2, frequency, 0, 4);
-                byte[] orbit_position = new byte[2];
-                Array.Copy(v, offset + 6, orbit_position, 0, 2);
-                int west_eastflag = (v[offset + 8] & 0x80) >> 7; /* 0: West, 1: East */
-                int polarization = (v[offset + 8] & 0x60) >> 5; /* 00: H, 01: V, 10: Left, 11; Right */
-                int dvbsystem = (v[offset + 8] & 0x04) >> 2; /* 1: DVB-S2, 0: DVB-S */
-                int roll_off = -1;
-                if (dvbsystem == 1)
-                {
-                    roll_off = (v[offset + 8] & 0x18) >> 3;
-                }
-                int modtype = (v[offset + 8] & 0x03);
-                byte[] symbol_rate = new byte[4];
-                Array.Copy(v, offset + 9, symbol_rate, 0, 4);
-                int fec = (symbol_rate[3] & 0x0f);
-                //log.DebugFormat("Transport descriptor id: {0} with length {1}", id, length);
-                log.DebugFormat("Transport: Freq {0}, Orbit: {1}, Symbolrate: {2}, Fec: {3}",
-                    Utils.Utils.bcdtohex(frequency),
-                    Utils.Utils.bcdtohex(orbit_position),
-                    Utils.Utils.bcdtohex(symbol_rate, symbol_rate.Length * 2 - 1),
-                    fec
-                    );
-                Transponder tsp = new();
-                tsp.frequency = Utils.Utils.bcdtoint(frequency) / 100;
-                tsp.frequencydecimal = Decimal.Divide(Utils.Utils.bcdtoint(frequency), 100);
-                switch (polarization)
-                {
-                    case 00: tsp.polarisation = Transponder.e_polarisation.Horizontal; break;
-                    case 01: tsp.polarisation = Transponder.e_polarisation.Vertical; break;
-                    case 10: tsp.polarisation = Transponder.e_polarisation.circular_left; break;
-                    case 11: tsp.polarisation = Transponder.e_polarisation.circular_right; break;
-                }
-                switch (dvbsystem)
-                {
-                    case 0: tsp.dvbsystem = Transponder.e_dvbsystem.DVB_S; break;
-                    case 1: tsp.dvbsystem = Transponder.e_dvbsystem.DVB_S2; break;
-                }
-                tsp.orbit = orbit_position;
-                tsp.samplerate = Utils.Utils.bcdtoint(symbol_rate) / 100;
-                tsp.diseqcposition = _transponder.diseqcposition;
-                switch (fec)
-                {
-                    case 0: tsp.fec = Transponder.e_fec.undefined; break;
-                    case 1: tsp.fec = Transponder.e_fec.fec_12; break;
-                    case 2: tsp.fec = Transponder.e_fec.fec_23; break;
-                    case 3: tsp.fec = Transponder.e_fec.fec_34; break;
-                    case 4: tsp.fec = Transponder.e_fec.fec_56; break;
-                    case 5: tsp.fec = Transponder.e_fec.fec_78; break;
-                    case 6: tsp.fec = Transponder.e_fec.fec_89; break;
-                    case 7: tsp.fec = Transponder.e_fec.fec_35; break;
-                    case 8: tsp.fec = Transponder.e_fec.fec_45; break;
-                    case 9: tsp.fec = Transponder.e_fec.fec_910; break;
-                    case 15:tsp.fec = Transponder.e_fec.none; break;
-                    default:tsp.fec = Transponder.e_fec.reserved; break;
-
-                }
-                switch (modtype)
-                { 
-                    case 0: tsp.mtype = Transponder.e_mtype.auto; break;
-                    case 1: tsp.mtype = Transponder.e_mtype.qpsk; break;
-                    case 2: tsp.mtype = Transponder.e_mtype.psk8; break;
-                    case 3: tsp.mtype = Transponder.e_mtype.qam16; break;
-                }
-                Transponder existing = nit.Find(x => x.frequency == tsp.frequency && x.polarisation == tsp.polarisation);
-                if (existing != null)
-                {
-                    nit.Remove(existing);
-                }
-                nit.Add(tsp);
-            }
-            return length + 2;
-        }
-
-        private int processnetworkdescriptor(byte[] v, int offset, Network netw)
-        {
-            int id = (int)v[offset];
-            int length = (int)v[offset+1];
-            if (id == 0x40)
-            {
-                int lenused = 0;
-                string networkname = getStringFromDescriptor(v, offset + 1, ref lenused);
-                netw.networkname = networkname;
-            }
-            log.DebugFormat("Network descriptor id: {0} with length {1}", id, length);
-            return length + 2;
-        }
-
         private void processdescriptor(byte[] descriptor, Channel channel, Channel._descriptorlevel level, Stream stream)
         {
             switch (descriptor[0])
@@ -832,22 +818,22 @@ namespace Sat2Ip
             }
             return null;
         }
-
-        private Channel findChannelByPmt(int transport_stream_id)
+        private Bouquet findBouquet(int bouquetid)
         {
-            foreach (Channel channel in pids)
-            {
-                foreach (Stream stream in channel.Pmt) {
-                    if (stream.Elementary_pid == transport_stream_id)
-                        return channel;
-                }
+            Bouquet bouquet = m_bouquets.Find(x => x.bouquet_id == bouquetid);
+            if (bouquet == null) {
+                bouquet = new Bouquet();
+                bouquet.bouquet_id = bouquetid;
+                bouquet.transponder = m_transponder;
+                m_bouquets.Add(bouquet);
             }
-            return null;
+            if (m_sessionbouquets.Find(x => x.bouquet_id == bouquetid) == null)
+                m_sessionbouquets.Add(bouquet);
+            return bouquet;
         }
-
         private bool isKnownPid(int payloadpid)
         {
-            log.DebugFormat("Considering PID: {0}", payloadpid);
+            //log.DebugFormat("Considering PID: {0}", payloadpid);
             if (pids != null)
             {
                 foreach (Channel channel in pids)
@@ -859,7 +845,6 @@ namespace Sat2Ip
             log.DebugFormat("PID not found");
             return false;
         }
-
         private void processSDT(byte[] msg)
         {
             /*
@@ -897,12 +882,12 @@ namespace Sat2Ip
             tableid 0x42, 0x46 
             */
             Span<byte> span = msg;
-            byte[] v = span.Slice(2).ToArray();
+            byte[] v = span.Slice(1).ToArray();
 
             if (patreceived == false) return;
             if (sdtreceived == true) return;
-            Utils.Utils.DumpBytes(msg, msg.Length);
-            structHeader hdr = getHeader(v);
+            //Utils.Utils.DumpBytes(msg, msg.Length);
+            tableHeader hdr = getHeader(v);
             log.DebugFormat("Processing SDT section {0} of {1}",hdr.sectionnr, hdr.lastsectionnr+1);
             if (sdtsectionprocessed == null || sdtsectionprocessed.Length != (hdr.lastsectionnr+1))
             {
@@ -920,16 +905,19 @@ namespace Sat2Ip
             {
                 while (offset < hdr.sectionlength - 7)
                 {
-                    ushort service_id = Utils.Utils.toShort(v[offset], v[offset + 1]);
-                    int EIT_schedule_flag = (v[offset + 2] & 0x02) >> 1;
-                    int EIT_present_following_flag = (v[offset + 2] & 0x01);
-                    int running_status = (v[offset + 3] & 0xE0) >> 5;
-                    int free_CA_mode = (v[offset + 3] & 0x10) >> 4;
-                    ushort descriptors_loop_length = Utils.Utils.toShort((byte)(v[offset + 3] & 0x0F), v[offset + 4]);
-                    int bytesprocessed = 0;
+                    int service_id = Utils.Utils.toShort(v[offset], v[offset + 1]); ;
                     Channel channel = findChannelByProgramnumber(service_id);
                     if (channel == null)
                         log.Debug(String.Format("NOT FOUND: SDT for service {0} ({1})", service_id, service_id.ToString("X4")));
+                    else
+                    {
+                        channel.EIT_schedule_flag = (v[offset + 2] & 0x02) >> 1;
+                        channel.EIT_present_following_flag = (v[offset + 2] & 0x01);
+                        channel.running_status = (v[offset + 3] & 0xE0) >> 5;
+                        channel.free_CA_mode = (v[offset + 3] & 0x10) >> 4;
+                    }
+                    ushort descriptors_loop_length = Utils.Utils.toShort((byte)(v[offset + 3] & 0x0F), v[offset + 4]);
+                    int bytesprocessed = 0;
                     while (bytesprocessed < descriptors_loop_length)
                     {
                         int descriptorid = v[offset + 5 + bytesprocessed];
@@ -939,7 +927,7 @@ namespace Sat2Ip
                         bytesprocessed = bytesprocessed + 2 + descriptorlength;
                         if (channel != null)
                         {
-                            processdescriptorwithchannelinfo(descriptor, channel);
+                            processsdtdescriptor(descriptor, channel);
                             log.Debug(String.Format("SDT for service {0} ({1}), pid {2}", service_id, service_id.ToString("X4"), channel.Programpid));
                         }
 
@@ -959,8 +947,7 @@ namespace Sat2Ip
                 log.Debug("Malformed SDT!! Exception is :" + ex.Message);
             }
         }
-
-        private void processdescriptorwithchannelinfo(byte[] descriptor, Channel channel)
+        private void processsdtdescriptor(byte[] descriptor, Channel channel)
         {
             /*
              * Documentation from DVB BlueBook A038 
@@ -972,12 +959,13 @@ namespace Sat2Ip
              */
             switch (descriptor[0])
             {
+                case 0x42:/* stuffing descriptor*/
                 case 0x48:/* service descriptor */
                     int service_type = descriptor[2];
                     channel.Servicetype = service_type;
                     int lenused = 0;
-                    channel.Providername = getStringFromDescriptor(descriptor, 3, ref lenused);
-                    channel.Servicename = getStringFromDescriptor(descriptor, 3+lenused+1,ref lenused);
+                    channel.Providername = DVBBase.getStringFromDescriptor(descriptor, 3, ref lenused);
+                    channel.Servicename = DVBBase.getStringFromDescriptor(descriptor, 3+lenused+1,ref lenused);
                     if (channel.Servicename.Length == 0)
                     {
                         channel.Servicename = channel.transponder.frequency.ToString() + "-" + channel.Programpid.ToString();
@@ -1005,48 +993,5 @@ namespace Sat2Ip
             }
         }
 
-        private string getStringFromDescriptor(byte[] descriptor, int offset, ref int lenused)
-        {
-            int strlen = descriptor[offset];
-            int strencoding;
-            if (strlen > 0)
-            {
-                if (descriptor[offset+1] < 0x20)
-                {
-                    strencoding = descriptor[offset + 1];
-                    strlen--;
-                    lenused = strlen + 1;
-                    Encoding ascii = Encoding.ASCII;
-                    //Encoding utf8 = Encoding.GetEncoding("utf-8");
-                    Encoding iso;
-                    //string asciistring = ascii.GetString(descriptor, offset + 2, strlen);
-                    string asciistring = Encoding.Latin1.GetString(descriptor, offset + 2, strlen);
-//                    byte[] utf8bytes = Encoding.ASCII.GetBytes(asciistring);
-                    iso = Encoding.Default;
-                    switch (strencoding)
-                    {
-                        case 0x10:
-                            int subset = strencoding = descriptor[offset + 3];
-                            asciistring = Encoding.Latin1.GetString(descriptor, offset + 4, strlen-2);
-                            break;
-                        default:
-                            iso = Encoding.Default;
-                            break;
-                    }
-                    // byte[] isoBytes = Encoding.Convert(ascii, iso, utf8bytes);
-                    return asciistring; 
-                }
-                else
-                {
-                    strencoding = 0;
-                    lenused = strlen;
-                    return Encoding.Latin1.GetString(descriptor, offset + 1, strlen);
-                }
-            }
-            else
-            {
-                return "";
-            }
-        }
     }
 }

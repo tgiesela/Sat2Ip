@@ -1,4 +1,5 @@
-﻿using Sat2Ip;
+﻿using Interfaces;
+using Sat2Ip;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +26,11 @@ namespace Sat2Ip
             stream
         };
         private _descriptorlevel _CAlevel;
-
+        public int EIT_schedule_flag { get; set; }
+        public int EIT_present_following_flag { get; set; }
+        public ushort service_id { get; internal set; }
+        public int running_status { get; internal set; }
+        public int free_CA_mode { get; internal set; }
         public int Programpid { get { return _programpid; } set { _programpid = value; } }
         public List<Sat2Ip.Stream> Pmt { get { return _pmt; } set { _pmt = value; } }
         public int Programnumber { get { return _programnumber; } set { _programnumber = value; } }

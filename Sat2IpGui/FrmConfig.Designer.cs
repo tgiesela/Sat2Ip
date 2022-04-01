@@ -94,6 +94,7 @@
             // 
             // cmbSatellites1
             // 
+            this.cmbSatellites1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbSatellites1.FormattingEnabled = true;
             this.cmbSatellites1.Location = new System.Drawing.Point(104, 35);
             this.cmbSatellites1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -103,6 +104,7 @@
             // 
             // cmbSatellites4
             // 
+            this.cmbSatellites4.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbSatellites4.FormattingEnabled = true;
             this.cmbSatellites4.Location = new System.Drawing.Point(104, 114);
             this.cmbSatellites4.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -112,6 +114,7 @@
             // 
             // cmbSatellites3
             // 
+            this.cmbSatellites3.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbSatellites3.FormattingEnabled = true;
             this.cmbSatellites3.Location = new System.Drawing.Point(104, 88);
             this.cmbSatellites3.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -121,6 +124,7 @@
             // 
             // cmbSatellites2
             // 
+            this.cmbSatellites2.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbSatellites2.FormattingEnabled = true;
             this.cmbSatellites2.Location = new System.Drawing.Point(104, 61);
             this.cmbSatellites2.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);

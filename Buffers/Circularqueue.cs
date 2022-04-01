@@ -10,6 +10,10 @@ namespace Circularbuffer
 {
     public class Circularqueue
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+                            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
         private ConcurrentQueue<byte[]> _queue;
         private int _maxsize = 0;
         private int _bufferedsize = 0;
@@ -33,7 +37,7 @@ namespace Circularbuffer
             }
             else
             {
-                Console.WriteLine("Circular buffer too small");
+                log.Debug("Circular buffer too small");
             }
         }
         public bool add(IntPtr b, short length)

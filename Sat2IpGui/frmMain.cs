@@ -10,23 +10,20 @@ using Vlc.DotNet.Core;
 using System.Reflection;
 using System.IO;
 using System.Diagnostics;
+using Sat2IpGui.SatUtils;
 
 namespace Sat2IpGui
 {
     public partial class frmMain : Form
     {
         private UPnPDevice m_device;
-        private SatUtils.LNB m_LNB1;
-        private SatUtils.LNB m_LNB2;
-        private SatUtils.LNB m_LNB3;
-        private SatUtils.LNB m_LNB4;
         private Channel m_selectedchannel;
         private ListBoxItem m_selecteditem;
-        private String _currentpids = String.Empty;
         private RTSP rtsp;
         private Descrambler.Descrambler descrambler;
         private List<Channel> channels = new();
         private Process VLC;
+        private Config config = new Config();
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         public class ListBoxItem
@@ -41,14 +38,20 @@ namespace Sat2IpGui
         public frmMain()
         {
             InitializeComponent();
+            config.load();
             cbTV.Checked = true;
             LoadChannels();
             UriBuilder uribld = new UriBuilder();
             uribld.Scheme = "rtp";
-            uribld.Host = Sat2IpGui.Properties.App.Default.IpAddressDevice;
-            uribld.Port = int.Parse(Sat2IpGui.Properties.App.Default.PortDevice);
+            if (config.configitems.IpAddressDevice == null)
+            {
+                openServerConfig();
+            }
+            uribld.Host = config.configitems.IpAddressDevice;
+            uribld.Port = int.Parse(config.configitems.PortDevice);
             rtsp = new RTSP(uribld.Uri);
             rtsp.frontend = rtsp.getFreeTuner();
+            rtsp.frontend = 4;
             VLC = new System.Diagnostics.Process();
             VLC.StartInfo.FileName = myVlcControl.VlcLibDirectory.FullName + "\\vlc.exe";
             VLC.StartInfo.Arguments = "-vvv rtp://127.0.0.1:40002";
@@ -57,45 +60,25 @@ namespace Sat2IpGui
         {
             if (lnb == null)
                 return;
-            //List<House> houseOnes = houses.FindAll(house => house.Name == "House 1");
-            //List<House> houseOnes = houses.Where(house => house.Name == "House 1").ToList();
-            foreach (Transponder trs in lnb.getTransponders())
+            lnb.load();
+            foreach (Channel c in lnb.channels)
             {
-                foreach (Channel c in lnb.getChannelsOnTransponder(trs.frequency, trs.diseqcposition))
-                {
-                    if (c.isDataService() & !cbData.Checked) { continue; };
-                    if (c.isRadioService() & !cbRadio.Checked) { continue; };
-                    if (c.isTVService() & !cbTV.Checked) { continue; };
-                    if (c.Programnumber == 0) { continue;  };
-                    if (c.Servicetype == 0) { continue; };
-                    channels.Add(c);
+                if (c.isDataService() & !cbData.Checked) { continue; };
+                if (c.isRadioService() & !cbRadio.Checked) { continue; };
+                if (c.isTVService() & !cbTV.Checked) { continue; };
+                if (c.Programnumber == 0) { continue;  };
+                if (c.Servicetype == 0) { continue; };
+                channels.Add(c);
                 }
-            }
         }
         private void LoadChannels()
         {
             channels.Clear();
+            for (int i = 0; i < config.configitems.lnb.Length; i++)
+            {
+                loadChannelsFromTransponder(config.configitems.lnb[i]);
+            }
             lbChannels.Items.Clear();
-            if (Properties.App.Default.LNB1 != "")
-            {
-                m_LNB1 = new SatUtils.LNB(1);
-                loadChannelsFromTransponder(m_LNB1);
-            }
-            if (Properties.App.Default.LNB2 != "")
-            {
-                m_LNB2 = new SatUtils.LNB(2);
-                loadChannelsFromTransponder(m_LNB2);
-            }
-            if (Properties.App.Default.LNB3 != "")
-            {
-                m_LNB3 = new SatUtils.LNB(3);
-                loadChannelsFromTransponder(m_LNB3);
-            }
-            if (Properties.App.Default.LNB4 != "")
-            {
-                m_LNB4 = new SatUtils.LNB(4); ;
-                loadChannelsFromTransponder(m_LNB4);
-            }
             channels = channels.OrderBy(c => c.Servicename).ToList();
             lbChannels.Items.Clear();
             foreach (Channel c in channels)
@@ -136,17 +119,16 @@ namespace Sat2IpGui
             {
                 ListBoxItem item = (ListBoxItem)lbChannels.Items[inx];
                 Channel pid = (Channel)item.obj;
-                String stream = pid.getPlayString();
+                String stream = pid.getPlayString() + ",17";
                 log.Debug("stream: " + stream);
-                _currentpids = pid.getPidString();
                 try
                 {
                     if (descrambler == null)
                     {
                         descrambler = new Descrambler.Descrambler(rtsp.Startport, rtsp.Startport + 2);
                         int oscamport;
-                        Int32.TryParse(Properties.App.Default.OscamPort, out oscamport);
-                        descrambler.setOscam(Properties.App.Default.OscamServer, oscamport);
+                        Int32.TryParse(config.configitems.OscamPort, out oscamport);
+                        descrambler.setOscam(config.configitems.OscamServer, oscamport);
                     }
                     else
                     {
@@ -161,7 +143,6 @@ namespace Sat2IpGui
                 {
                     log.Debug("Cannot connect to OSCAM client. Is it running?" + se.Message);
                 }
-                //var uri = new Uri(string.Format(@"rtp://{0}:{1}", rtsp.Destination, rtsp.Startport + 2));
                 var uri = new Uri(string.Format(@"rtp://{0}:{1}", "127.0.0.1", rtsp.Startport + 2));
                 log.Debug("URI: " + uri.ToString());
                 rtsp.commandPlay("");
@@ -198,17 +179,23 @@ namespace Sat2IpGui
 
         private void ServerToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            openServerConfig();
+        }
+
+        private void openServerConfig()
+        {
             frmServer server = new frmServer();
             DialogResult result = server.ShowDialog();
             if (result == DialogResult.OK)
             {
                 m_device = server.SelectedDevice;
                 Uri ip = new Uri(m_device.PresentationURL);
-                Properties.App.Default.IpAddressDevice = ip.Host;
-                Properties.App.Default.Save();
+                config.configitems.IpAddressDevice = ip.Host;
+                config.configitems.PortDevice = ip.Port.ToString();
+                config.save();
             }
-        }
 
+        }
         private void satelliteSetupToolStripMenuItem_Click(object sender, EventArgs e)
         {
             FrmConfig config = new FrmConfig();

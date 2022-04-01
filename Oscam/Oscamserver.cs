@@ -337,6 +337,7 @@ namespace Oscam
             sendgreeting();
             sendCA_PMT();
             m_active = true;
+            log.Debug("Oscamthread active");
             while (m_active)
             {
                 if (m_packetqueue.getBufferedsize() < 1)
@@ -473,7 +474,7 @@ namespace Oscam
                         {
                             
                             //int i = 0;
-                            int offset = 1;
+                            int offset = 0;
                             int tablelen = packet.expectedlength;
                             if (testlikeoscam(packet.data, offset, tablelen + 1, flt)) { 
                                 log.Debug(String.Format("Filter matched, starting from offset: {0}, tablelength: {1}, pid: {2}, filternr: {3}", offset, tablelen+2, packet.payloadpid, flt.Filternr));

@@ -34,7 +34,7 @@ namespace Circularbuffer
                 }
                 else
                 {
-                    Console.WriteLine("Circular buffer too small");
+                    log.Debug("Circular buffer too small");
                 }
             }
         }

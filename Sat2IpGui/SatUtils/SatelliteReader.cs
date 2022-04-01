@@ -62,6 +62,16 @@ namespace Sat2IpGui.SatUtils
             }
             return null;
         }
+        internal SatelliteInfo findSatelliteOrbit(int orbit)
+        {
+            foreach (SatelliteInfo info in listinfo)
+            {
+                string[] parts = getSatelliteName(info).Split(' ');
+                if (decimal.Parse(parts[0]) == orbit)
+                    return info;
+            }
+            return null;
+        }
     }
     class SatelliteInfo
     {

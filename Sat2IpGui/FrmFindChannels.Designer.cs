@@ -39,10 +39,12 @@
             this.btnClose = new System.Windows.Forms.Button();
             this.cbUseNit = new System.Windows.Forms.CheckBox();
             this.btnStop = new System.Windows.Forms.Button();
+            this.cbFastscan = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // cmbLNB
             // 
+            this.cmbLNB.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbLNB.FormattingEnabled = true;
             this.cmbLNB.Location = new System.Drawing.Point(28, 25);
             this.cmbLNB.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -53,12 +55,14 @@
             // 
             // cmbTransponder
             // 
+            this.cmbTransponder.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbTransponder.FormattingEnabled = true;
             this.cmbTransponder.Location = new System.Drawing.Point(250, 25);
             this.cmbTransponder.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.cmbTransponder.Name = "cmbTransponder";
             this.cmbTransponder.Size = new System.Drawing.Size(196, 23);
             this.cmbTransponder.TabIndex = 1;
+            this.cmbTransponder.SelectedIndexChanged += new System.EventHandler(this.cmbTransponder_SelectedIndexChanged);
             // 
             // cbScanAll
             // 
@@ -156,11 +160,24 @@
             this.btnStop.UseVisualStyleBackColor = true;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
             // 
+            // cbFastscan
+            // 
+            this.cbFastscan.AutoSize = true;
+            this.cbFastscan.Location = new System.Drawing.Point(357, 70);
+            this.cbFastscan.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            this.cbFastscan.Name = "cbFastscan";
+            this.cbFastscan.Size = new System.Drawing.Size(71, 19);
+            this.cbFastscan.TabIndex = 11;
+            this.cbFastscan.Text = "Fastscan";
+            this.cbFastscan.UseVisualStyleBackColor = true;
+            this.cbFastscan.CheckedChanged += new System.EventHandler(this.cbFastscan_CheckedChanged);
+            // 
             // FrmFindChannels
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(520, 222);
+            this.Controls.Add(this.cbFastscan);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.cbUseNit);
             this.Controls.Add(this.btnClose);
@@ -193,5 +210,6 @@
         private System.Windows.Forms.Button btnClose;
         private System.Windows.Forms.CheckBox cbUseNit;
         private System.Windows.Forms.Button btnStop;
+        private System.Windows.Forms.CheckBox cbFastscan;
     }
 }

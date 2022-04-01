@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Interfaces;
+using System;
+using System.Collections.Generic;
 
 namespace Sat2Ip
 {
@@ -39,7 +41,6 @@ namespace Sat2Ip
         public e_polarisation polarisation { get; set; }
         public e_dvbsystem dvbsystem { get; set; }
         public e_mtype mtype { get; set; }
-
         public Transponder(int disqeqcposition, int frequency, int samplerate, e_polarisation pol, e_dvbsystem msys, e_fec fec, e_mtype mtype)
         {
             this.diseqcposition = disqeqcposition;
@@ -172,5 +173,8 @@ namespace Sat2Ip
         }
 
         public byte[] orbit { get; set; }
+        public ushort transportstreamid { get; set; }
+        public ushort network_id { get; set; }
+        public List<ServiceListItem> services { get; set; }
     }
 }

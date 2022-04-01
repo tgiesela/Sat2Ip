@@ -115,7 +115,7 @@ namespace Sat2Ip
                 }
                 if (transport_private_data_flag == 1)
                 {
-                    Utils.Utils.DumpBytes(v, v.Length);
+                    //Utils.Utils.DumpBytes(v, v.Length);
                     int transport_private_data_length = v[offset];
                     byte[] privatedata = new byte[transport_private_data_length];
                     for (int i = 0; i < transport_private_data_length; i++)

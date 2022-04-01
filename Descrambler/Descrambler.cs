@@ -49,14 +49,13 @@ namespace Descrambler
             m_outputport = outputport;
             log.Debug("Start reader on port: " + m_port);
             reader = new RtpReader(m_port);
-            int optimalsize = 512;
+            int optimalsize = 1024;
             m_oscampackets = new mp2packetqueue(optimalsize);
             m_inputpackets = new Circularqueue(optimalsize);
             payloads = new();
         }
         public void processpayload(Payload payload)
         {
-            //log.DebugFormat("Process payload PID {0}. Length: {1}, expected length {2}",payload.payloadpid,payload.payloadlength, payload.expectedlength);
             if (m_oscamserver != null)
                 m_oscamserver.filterpacket(payload);
 
@@ -110,11 +109,9 @@ namespace Descrambler
             {
                 payloadpart = packet.getPayload(lenprocessed, 188);
                 mp2Packet = new Mpeg2Packet(payloadpart);
+                payloads.storePayload(mp2Packet);
                 m_oscampackets.add(mp2Packet);
-
-                //payload = payloads.storePayload(mp2Packet);
                 m_inputpackets.add(mp2Packet.buffer);
-                //m_inputpackets.add(mp2Packet.buffer);
                 /* Payload processing is done via callback function, n/a for descrambler */
                 lenprocessed += 188;
             }
@@ -172,6 +169,7 @@ namespace Descrambler
 
         public void setOscam(string oscamServer, int oscamPort)
         {
+            if (m_oscampackets == null) throw new Exception("m_oscampackets == null");
             m_oscamserver = new Oscamserver(oscamServer, oscamPort, m_oscampackets);
             if (m_channel != null)
                 m_oscamserver.Start(m_channel);
