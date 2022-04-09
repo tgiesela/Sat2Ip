@@ -95,6 +95,9 @@ namespace Sat2Ip
                     else
                         this.polarisation = e_polarisation.circular_right;
         }
+
+        public List<PAT.PATEntry> pids { get; set; }
+
         public void fecFromString(string sfec)
         {
             if (sfec.Equals("12"))

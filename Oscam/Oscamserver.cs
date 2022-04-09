@@ -322,6 +322,7 @@ namespace Oscam
         public void Start(Channel channel)
         {
             m_channel = channel;
+            m_payloads = new(processoscampayload);
             m_thread = new Thread(new ThreadStart(oscamthread));
             m_thread.Start();
         }
@@ -360,6 +361,7 @@ namespace Oscam
         {
             m_active=false;
             m_oscamsock.Disconnect();
+            m_payloads=new();
         }
 
         /// <summary>
@@ -600,7 +602,7 @@ namespace Oscam
             int program_info_length = 0;
             int stream_info_length = 0;
 
-            byte[] capmt = new byte[512];
+            byte[] capmt = new byte[4096];
 
             /* Now copy message id to first 4 bytes of message */
             byte[] b_uint32 = new byte[4];
@@ -612,7 +614,7 @@ namespace Oscam
             capmt[3] = 0x82;
 
             capmt[6] = (byte)ca_pmt_list_management.only;/* only */
-            Buffer.BlockCopy(Utils.Utils.fromShort((ushort)m_channel.Programnumber), 0, capmt, 7, 2);
+            Buffer.BlockCopy(Utils.Utils.fromShort((ushort)m_channel.service_id), 0, capmt, 7, 2);
             capmt[9] = (0x00 << 6) + (0x01 << 1);
             capmt[10] = 0x00; /* placeholder for program_info_length */
             capmt[11] = 0x00; /* placeholder for program_info_length */

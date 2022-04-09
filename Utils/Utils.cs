@@ -82,5 +82,29 @@ namespace Utils
             Directory.CreateDirectory(storagefolder);
             return storagefolder;
         }
+        public static uint crc32bmpeg2(ReadOnlySpan<byte> message, int l)
+        {
+            /*
+             * As noted in the crcalc web page, crc32/mpeg2 uses a left shifting (not reflected) 
+             * CRC along with the CRC polynomial 0x104C11DB7 and initial CRC value of 0xFFFFFFFF,
+             * and not post complemented:
+             */
+            int i, j;
+            uint crc, msb;
+
+            crc = 0xFFFFFFFF;
+            for (i = 0; i < l; i++)
+            {
+                // xor next byte to upper bits of crc
+                crc ^= (((uint)message[i]) << 24);
+                for (j = 0; j < 8; j++)
+                {    // Do eight times.
+                    msb = crc >> 31;
+                    crc <<= 1;
+                    crc ^= (0 - msb) & 0x04C11DB7;
+                }
+            }
+            return crc;         // don't complement crc on output
+        }
     }
 }

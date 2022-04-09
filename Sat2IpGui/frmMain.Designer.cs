@@ -36,6 +36,8 @@
             this.serverToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.satelliteSetupToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.findChannelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.bouquetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.assignToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.lbChannels = new System.Windows.Forms.ListBox();
             this.cbRadio = new System.Windows.Forms.CheckBox();
             this.cbTV = new System.Windows.Forms.CheckBox();
@@ -43,6 +45,7 @@
             this.btnVLC = new System.Windows.Forms.Button();
             this.lvChannels = new System.Windows.Forms.ListView();
             this.Channel = new System.Windows.Forms.ColumnHeader();
+            this.filterToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.myVlcControl)).BeginInit();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -93,7 +96,8 @@
             // menuStrip1
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.fileToolStripMenuItem});
+            this.fileToolStripMenuItem,
+            this.bouquetToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Padding = new System.Windows.Forms.Padding(7, 2, 0, 2);
@@ -131,6 +135,22 @@
             this.findChannelsToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
             this.findChannelsToolStripMenuItem.Text = "Find channels...";
             this.findChannelsToolStripMenuItem.Click += new System.EventHandler(this.findChannelsToolStripMenuItem_Click);
+            // 
+            // bouquetToolStripMenuItem
+            // 
+            this.bouquetToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.assignToolStripMenuItem,
+            this.filterToolStripMenuItem});
+            this.bouquetToolStripMenuItem.Name = "bouquetToolStripMenuItem";
+            this.bouquetToolStripMenuItem.Size = new System.Drawing.Size(64, 20);
+            this.bouquetToolStripMenuItem.Text = "Bouquet";
+            // 
+            // assignToolStripMenuItem
+            // 
+            this.assignToolStripMenuItem.Name = "assignToolStripMenuItem";
+            this.assignToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.assignToolStripMenuItem.Text = "Assign";
+            this.assignToolStripMenuItem.Click += new System.EventHandler(this.assignToolStripMenuItem_Click);
             // 
             // lbChannels
             // 
@@ -209,6 +229,13 @@
             this.Channel.Text = "Channel";
             this.Channel.Width = 100;
             // 
+            // filterToolStripMenuItem
+            // 
+            this.filterToolStripMenuItem.Name = "filterToolStripMenuItem";
+            this.filterToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.filterToolStripMenuItem.Text = "Filter";
+            this.filterToolStripMenuItem.Click += new System.EventHandler(this.filterToolStripMenuItem_Click);
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -252,6 +279,9 @@
         private System.Windows.Forms.Button btnVLC;
         private System.Windows.Forms.ListView lvChannels;
         private System.Windows.Forms.ColumnHeader Channel;
+        private System.Windows.Forms.ToolStripMenuItem bouquetToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem assignToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem filterToolStripMenuItem;
     }
 }
 

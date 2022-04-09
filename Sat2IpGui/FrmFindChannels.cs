@@ -17,10 +17,8 @@ namespace Sat2IpGui
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private int lnb;
         private SatUtils.LNB m_LNB;
         private SatUtils.SatelliteReader reader;
-        private List<SatUtils.SatelliteInfo> m_listinfo;
         private SatUtils.SatelliteInfo info;
         private string iniFilename;
         private SatUtils.IniFile inifile;
@@ -28,23 +26,22 @@ namespace Sat2IpGui
         private bool scanning = false;
         private Config config = new Config();
         private List<Transponder> m_transponders;
-        private FastScanLocation m_fastscanlocation;
 
         public FrmFindChannels()
         {
             InitializeComponent();
             config.load();
-            for (int i = 0; i < config.configitems.lnb.Length; i++)
+            for (int i = 0; i < config.configitems.lnbs.Length; i++)
             {
-                if (config.configitems.lnb[i] != null)
-                    cmbLNB.Items.Add(config.configitems.lnb[i].satellitename);
+                if (config.configitems.lnbs[i] != null)
+                    cmbLNB.Items.Add(config.configitems.lnbs[i].satellitename);
             }
 
             cmbTransponder.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbLNB.DropDownStyle = ComboBoxStyle.DropDownList;
 
             reader = new SatUtils.SatelliteReader();
-            m_listinfo = reader.read(@"satellites.csv");
+            reader.read(@"Satellites.csv");
             btnScan.Enabled = false;
             m_transponders = new List<Transponder>();
         }
@@ -104,7 +101,6 @@ namespace Sat2IpGui
         }
         private void loadTranspondersNIT()
         {
-            lnb = cmbLNB.SelectedIndex + 1;
             m_LNB = getLNBFromCombobox();
             foreach (Network netw in m_LNB.networks)
             {
@@ -134,11 +130,11 @@ namespace Sat2IpGui
         private LNB getLNBFromCombobox()
         {
             LNB lnb = null;
-            for (int i = 0; i < config.configitems.lnb.Length; i++)
+            for (int i = 0; i < config.configitems.lnbs.Length; i++)
             {
-                if (config.configitems.lnb[i].satellitename == cmbLNB.SelectedItem.ToString())
+                if (config.configitems.lnbs[i].satellitename == cmbLNB.SelectedItem.ToString())
                 {
-                    lnb = config.configitems.lnb[i];
+                    lnb = config.configitems.lnbs[i];
                     lnb.load();
                     break;
                 }
@@ -150,11 +146,11 @@ namespace Sat2IpGui
         private Transponder getTransponderForFastscan(FastScanLocation location)
         {
             LNB lnb;
-            for (int i = 0; i < config.configitems.lnb.Length; i++)
+            for (int i = 0; i < config.configitems.lnbs.Length; i++)
             {
-                if (config.configitems.lnb[i] != null)
+                if (config.configitems.lnbs[i] != null)
                 {
-                    lnb = config.configitems.lnb[i];
+                    lnb = config.configitems.lnbs[i];
                     if (lnb.orbit() == location.position)
                     {
                         lnb.load();
@@ -269,10 +265,10 @@ namespace Sat2IpGui
                     this.Update();
                     if (lChannels.Count > 0)
                     {
-                        m_LNB.setTransponder(tsp, lChannels);
                         m_LNB.networks = scanner.networks;
                         m_LNB.bouquets = scanner.bouquets;
                         m_LNB.transponders = getTranspondersFromNetwork(m_LNB.networks);
+                        m_LNB.setTransponder(tsp, lChannels);
                     }
                 }
             }
@@ -287,10 +283,10 @@ namespace Sat2IpGui
     
                     if (lChannels.Count > 0)
                     {
-                        m_LNB.setTransponder(tsp, lChannels);
                         m_LNB.networks = scanner.networks;
                         m_LNB.bouquets = scanner.bouquets;
                         m_LNB.transponders = getTranspondersFromNetwork(m_LNB.networks);
+                        m_LNB.setTransponder(tsp, lChannels);
                     }
                 }
                 else
@@ -307,57 +303,57 @@ namespace Sat2IpGui
                 }
             }
 
-            List<Network> networks = scanner.networks;
-            List<Bouquet> bouquet = scanner.bouquets;
-            List<Channel> channels = m_LNB.channels;
-            List<Transponder> transponders = getTranspondersFromNetwork(networks);
-            foreach (Network n in networks)
-            {
-                List<Transponder> nit = n.transponders.OrderBy(x => x.frequency).ToList();
-                log.DebugFormat("Network: id {0}, name {1}", n.networkid, n.networkname);
-                log.Debug("  Bouquets");
-                foreach (Linkage l in n.bouquetlinkages)
-                {
-                    printlinkagedetails(l);
-                }
-                log.Debug("  EPG Info");
-                foreach (Linkage l in n.epglinkages)
-                {
-                    printlinkagedetails(l);
-                }
-                log.Debug("  Service Info");
-                foreach (Linkage l in n.silinkages)
-                {
-                    printlinkagedetails(l);
-                }
-                foreach (Transponder t in nit)
-                {  
-                    if (t.orbit != null)
-                        log.DebugFormat("Freq: {0}, polarization: {1}, symbolrate: {2}, orbit: {3}, id: {4}", t.frequency, t.polarisation, t.samplerate,Utils.Utils.bcdtohex(t.orbit), t.transportstreamid);
-                    else
-                        log.DebugFormat("Freq: {0}, polarization: {1}, symbolrate: {2}, orbit: ??, id: {3}", t.frequency, t.polarisation, t.samplerate, t.transportstreamid);
-                }
-            }
-            foreach (Bouquet b in bouquet)
-            {
-                log.DebugFormat("Bouquet id: {0} ({1}), found on transponder {2}, LNB {3}", b.bouquet_id, b.bouquet_name, b.transponder.frequency, b.transponder.diseqcposition);
-                if (b.bouquetlinkage != null)
-                {
-                    printlinkagedetails(b.bouquetlinkage);
-                }
-                foreach (BatStream bs in b.streams)
-                {
-                    log.DebugFormat("    Stream id: {0} ({0:X}) network: {1})", bs.streamid, bs.original_networkid);
-                    foreach (ServiceListItem sli in bs.services)
-                    {
-                        Channel c = channels.Find(x => x.Programnumber == sli.service_id);
-                        if (c != null)
-                            log.DebugFormat("        Service id: {0} ({0:X}), type: {1}, name: {2}, provider: {3}", sli.service_id, sli.service_type, c.Servicename, c.Providername);
-                        else
-                            log.DebugFormat("        Service id: {0} ({0:X}), type: {1}", sli.service_id, sli.service_type);
-                    }
-                }
-            }
+//            List<Network> networks = scanner.networks;
+//            List<Bouquet> bouquet = scanner.bouquets;
+//            List<Channel> channels = m_LNB.channels;
+//            List<Transponder> transponders = getTranspondersFromNetwork(networks);
+//            foreach (Network n in networks)
+//            {
+//                List<Transponder> nit = n.transponders.OrderBy(x => x.frequency).ToList();
+//                log.DebugFormat("Network: id {0}, name {1}", n.networkid, n.networkname);
+//                log.Debug("  Bouquets");
+//                foreach (Linkage l in n.bouquetlinkages)
+//                {
+//                    printlinkagedetails(l);
+//                }
+//                log.Debug("  EPG Info");
+//                foreach (Linkage l in n.epglinkages)
+//                {
+//                    printlinkagedetails(l);
+//                }
+//                log.Debug("  Service Info");
+//                foreach (Linkage l in n.silinkages)
+//                {
+//                    printlinkagedetails(l);
+//                }
+//                foreach (Transponder t in nit)
+//                {  
+//                    if (t.orbit != null)
+//                        log.DebugFormat("Freq: {0}, polarization: {1}, symbolrate: {2}, orbit: {3}, id: {4}", t.frequency, t.polarisation, t.samplerate,Utils.Utils.bcdtohex(t.orbit), t.transportstreamid);
+//                    else
+//                        log.DebugFormat("Freq: {0}, polarization: {1}, symbolrate: {2}, orbit: ??, id: {3}", t.frequency, t.polarisation, t.samplerate, t.transportstreamid);
+//                }
+//            }
+//            foreach (Bouquet b in bouquet)
+//            {
+//                log.DebugFormat("Bouquet id: {0} ({1}), found on transponder {2}, LNB {3}", b.bouquet_id, b.bouquet_name, b.transponder.frequency, b.transponder.diseqcposition);
+//                if (b.bouquetlinkage != null)
+//                {
+//                    printlinkagedetails(b.bouquetlinkage);
+//                }
+//                foreach (BatStream bs in b.streams)
+//                {
+//                    log.DebugFormat("    Stream id: {0} ({0:X}) network: {1})", bs.streamid, bs.original_networkid);
+//                    foreach (ServiceListItem sli in bs.services)
+//                    {
+//                        Channel c = channels.Find(x => x.service_id == sli.service_id);
+//                        if (c != null)
+//                            log.DebugFormat("        Service id: {0} ({0:X}), type: {1}, name: {2}, provider: {3}", sli.service_id, sli.service_type, c.Servicename, c.Providername);
+//                        else
+//                            log.DebugFormat("        Service id: {0} ({0:X}), type: {1}", sli.service_id, sli.service_type);
+//                    }
+//                }
+//            }
             m_LNB.save();
             MessageBox.Show("Scan complete, channels saved");
             scanner.stop();
@@ -374,7 +370,7 @@ namespace Sat2IpGui
 
             log.DebugFormat("    Detailed info on: {0} service: {1}", l.transportstreamid, l.serviceid);
             Transponder tsp = transponders.Find(x => x.transportstreamid == l.transportstreamid);
-            Channel c = channels.Find(x => x.Programnumber == l.serviceid);
+            Channel c = channels.Find(x => x.service_id == l.serviceid);
             if (tsp != null)
             {
                 log.DebugFormat("        on Transponder: {0}", tsp.frequencydecimal);
@@ -427,11 +423,11 @@ namespace Sat2IpGui
                     List<ServiceListItem> services = scantask.network.networkservices;
                     services = services.OrderBy(x => x.lcn).ToList();
                     List<Channel> allchannels = new();
-                    for (int i = 0; i < config.configitems.lnb.Length; i++)
+                    for (int i = 0; i < config.configitems.lnbs.Length; i++)
                     {
-                        if (config.configitems.lnb[i] != null)
+                        if (config.configitems.lnbs[i] != null)
                         {
-                            LNB lnb = new LNB(config.configitems.lnb[i].diseqcposition);
+                            LNB lnb = new LNB(config.configitems.lnbs[i].diseqcposition);
                             lnb.load();
                             allchannels.AddRange(lnb.channels);
                         }
@@ -439,7 +435,7 @@ namespace Sat2IpGui
                     log.DebugFormat("\nFastscan results for {0}\n", scantask.location.name);
                     foreach (ServiceListItem service in services)
                     {
-                        List<Channel> cs = allchannels.FindAll(x => x.Programnumber == service.service_id && x.transponder.transportstreamid == service.transportstreamid);
+                        List<Channel> cs = allchannels.FindAll(x => x.service_id == service.service_id && x.transponder.transportstreamid == service.transportstreamid);
                         if (cs != null && cs.Count > 0)
                         {
                             foreach (Channel c in cs)
@@ -451,6 +447,14 @@ namespace Sat2IpGui
 
                         }
                     }
+                    if (scantask.programInfos != null)
+                    {
+                        foreach (FastScanProgramInfo pi in scantask.programInfos)
+                        {
+                            log.DebugFormat("{0}:\t{1} Stream: {2}({2:X}), Network:{3})", pi.packagename, pi.channelname, pi.streamid, pi.network);
+                            log.DebugFormat("\tPIDS: {0}({0:X})\t{1}({1:X})\t{2}({2:X})\t{3}({3:X})\t{4}({4:X})", pi.pmtpid[0], pi.pmtpid[1], pi.pmtpid[2], pi.pmtpid[3], pi.pmtpid[4]);
+                        }
+                    }
                 }
             }
             return scantask;
@@ -459,11 +463,8 @@ namespace Sat2IpGui
         {
             foreach (Channel channel in channels)
             {
-                log.Debug("Provider: " + channel.Providername +
-                    "\tService: " + channel.Servicename + 
-                    "\tProgram number: " + channel.Programnumber.ToString("X2") + 
-                    "\tProgram PID: " + channel.Programpid.ToString("X2") +
-                    "\tService type: " + channel.Servicetype.ToString());
+                log.DebugFormat("Provider: {0}\tService: {1} ({1:X})\tProgram PID: {2} ({2:X})\tService type: {3}",
+                    channel.Providername, channel.Servicename, channel.Programpid, channel.Servicetype);
                 //foreach (Sat2Ip.Stream pmt in channel.Pmt)
                 //{
                 //    System.Console.WriteLine("Elmentary PID: " + pmt.Elementary_pid.ToString("X2") + ", Type: " +

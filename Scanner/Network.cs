@@ -14,7 +14,6 @@ namespace Interfaces
         public List<Transponder> transponders { get; set; }
         private bool terresrtialorcable;
         private bool satellite;
-
         public int diseqcposition { get; set; }
         public List<Linkage> bouquetlinkages { get; set; }
         public List<Linkage> epglinkages { get; set; }
@@ -74,6 +73,7 @@ namespace Interfaces
                     }
                     CRC_32                          32
                 */
+            //Utils.Utils.DumpBytes(section.ToArray(), section.Length);
             int offset = 0;
             ushort network_descriptors_length = Utils.Utils.toShort((byte)(section[0] & 0x0F), section[1]);
 
@@ -120,7 +120,8 @@ namespace Interfaces
             {
                 transponders.Remove(existing);
             }
-            transponders.Add(tsp);
+            if (tsp.frequency > 0 && satellitenetwork)
+                transponders.Add(tsp);
 
             return descriptorlengthprocessed + 6;
         }

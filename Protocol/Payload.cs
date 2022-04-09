@@ -19,6 +19,7 @@ namespace Protocol
         public int expectedlength { get; set; }
         public bool scambled { get; internal set; }
         public int adaptationlength { get; internal set; }
+        public int continuitycounter { get; internal set; }
 
         internal enum packettype
         {
@@ -33,7 +34,7 @@ namespace Protocol
             payloadlength = 0;
             expectedlength = 0;
             adaptationlength = 0;
-
+            continuitycounter = -1;
         }
         public bool isComplete()
         {
@@ -50,6 +51,28 @@ namespace Protocol
             payloadlength = 0;
             expectedlength = 0;
             adaptationlength = 0;
+        }
+
+        internal bool isnextcc(int cc)
+        {
+            if (this.continuitycounter == -1) /* First packet */
+            {
+                this.continuitycounter = cc;
+                return true;
+            }
+            this.continuitycounter++;
+            if (this.continuitycounter > 15)
+            {
+                this.continuitycounter = 0;
+            }
+            if (this.continuitycounter == cc)
+                return true;
+            else
+            {
+                log.DebugFormat("expected CC {0}, received CC: {1}", this.continuitycounter, cc);
+                this.continuitycounter = cc;
+                return false;
+            }
         }
     }
     public class Payloads
@@ -103,12 +126,18 @@ namespace Protocol
             System.Buffer.BlockCopy(packet.payload, offsetfrom, payload.data, payload.payloadlength, bytestocopy);
             payload.payloadlength = payload.payloadlength + bytestocopy;
             payload.adaptationlength = payload.adaptationlength + packet.adaptationlength;
-            //log.DebugFormat("Appended {0} bytes to payload for pid: {1}, expectedlength {2}, payloadlength {3}",
-            //    bytestocopy, payload.payloadpid, payload.expectedlength, payload.payloadlength);
         }
         public Payload storePayload(Mpeg2Packet packet)
         {
             Payload payload = findPayload(packet.pid, packet.payloadstartindicator);
+            if (payload != null)
+            {
+                if (!payload.isnextcc(packet.continuitycounter))
+                {
+                    log.DebugFormat("CC-error for PID {0} (0x{0:X4}), CC-received: {1}. PAYLOAD RESET!", payload.payloadpid, packet.continuitycounter);
+                    payload.clear();
+                }
+            }
             if (packet.payloadstartindicator == 1) /* Start of payload */
             {
                 /*
@@ -118,9 +147,14 @@ namespace Protocol
                 int pointer = packet.payload[0];
                 if (payload.payloadlength > 0) /* Still payload in buffer, reset before continuing */
                 {
-                    if (payload.type != Payload.packettype.pes) { 
+                    if (payload.type == Payload.packettype.pes) 
+                    {
                         /* PES packets of a video stream may have expectedlength = 0. Which is an undefined packet length
                          * In that case it is just treated as a new packet.*/
+                        payload.clear();
+                    }
+                    else
+                    { 
                         if (pointer > 0)
                         {
                             appendtopayload(payload, packet, 0, pointer);
@@ -132,11 +166,6 @@ namespace Protocol
                         }
                         invokeprocesspayload(payload);
                     }
-                    else
-                    {
-                        payload.clear();
-                    }
-
                 }
                 if (packet.scramblingcontrol == 0)
                 {
@@ -173,7 +202,6 @@ namespace Protocol
                                 invokeprocesspayload(payload);
                             offset += tablelen + 3;
                         }
-
                         if (packet.payload.Length < (pointer + 3) || pointer > 184)
                         {
                             log.Debug("Malformed packet, clear payload");
@@ -211,8 +239,11 @@ namespace Protocol
                     }
                     if (payload.payloadlength == 0)
                     {
-                        log.DebugFormat("There should have been something in the buffer for PID: {0}, exp.len: {1}, type: {2}",
-                            payload.payloadpid, payload.expectedlength, payload.type);
+                        /* There are payloads with a lot of stuffing (DVB-CC for example) */
+                        /* The first part is already processed, but after that multiple packets with stuffing are being sent */
+                        /* The packet will be discarded */
+                        //log.DebugFormat("There should have been something in the buffer for PID: {0}, exp.len: {1}, type: {2}",
+                        //    payload.payloadpid, payload.expectedlength, payload.type);
                     }
                     else
                     {

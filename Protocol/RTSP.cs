@@ -334,7 +334,8 @@ namespace Sat2Ip
                         throw new Exception(String.Format("response from other session received: {0} <> {1}", _session, section.Value));
                 }
             }
-            _timer.Stop();
+            if (_timer != null)
+                _timer.Stop();
             _session = String.Empty;
 
         }

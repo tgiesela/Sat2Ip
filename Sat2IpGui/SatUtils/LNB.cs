@@ -23,13 +23,17 @@ namespace Sat2IpGui.SatUtils
         public int diseqcposition { get { return m_diseqcposition;} set { m_diseqcposition = value; } }
         public string satellitename { get; set; }
 
-        public LNB(int lnb)
+        public LNB(int lnb):this()
         {
             diseqcposition = lnb;
             //load();
         }
         public LNB()
         {
+            networks = new List<Network>();
+            channels = new List<Channel>();
+            bouquets = new List<Bouquet>();
+            transponders = new List<Transponder>();
         }
         public int orbit()
         {

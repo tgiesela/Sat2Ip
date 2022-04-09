@@ -74,6 +74,7 @@ namespace Descrambler
             if (!reading && !writing) return; /* Already stopped */
             reading = false;
             writing = false;
+            payloads = new();
             if (m_oscamserver != null)
             {
                 m_oscamserver.Stopdemux();

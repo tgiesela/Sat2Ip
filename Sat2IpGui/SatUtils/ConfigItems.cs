@@ -10,7 +10,7 @@ namespace Sat2IpGui.SatUtils
     public class ConfigItems
     {
         private LNB[] m_lnb = new LNB[4];
-        public LNB[] lnb { get { return m_lnb; } set { m_lnb = value; } }
+        public LNB[] lnbs { get { return m_lnb; } set { m_lnb = value; } }
 
         public string OscamServer { get; set; }
         public string OscamPort { get; set; }

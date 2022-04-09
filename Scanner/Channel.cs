@@ -5,19 +5,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Interfaces.PAT;
 
 namespace Sat2Ip
 {
     [Serializable]
     public class Channel
     {
-        /* Structure to hold information of a CA-pid */
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private int _programpid = -1;
-        private int _programnumber = -1;
         private List<Sat2Ip.Stream> _pmt;
         private bool _pmtpresent = false;
-        private String _providername = String.Empty;
-        private String _channelname = String.Empty;
+        private string m_providername = string.Empty;
+        private string m_servicename = string.Empty;
         private Transponder _transponder;
         private List<capid> _capids;
         public enum _descriptorlevel
@@ -28,23 +29,24 @@ namespace Sat2Ip
         private _descriptorlevel _CAlevel;
         public int EIT_schedule_flag { get; set; }
         public int EIT_present_following_flag { get; set; }
-        public ushort service_id { get; internal set; }
-        public int running_status { get; internal set; }
-        public int free_CA_mode { get; internal set; }
+        public ushort service_id { get; set; }
+        public int running_status { get; set; }
+        public int free_CA_mode { get; set; }
         public int Programpid { get { return _programpid; } set { _programpid = value; } }
         public List<Sat2Ip.Stream> Pmt { get { return _pmt; } set { _pmt = value; } }
-        public int Programnumber { get { return _programnumber; } set { _programnumber = value; } }
         public bool Pmtpresent { get { return _pmtpresent; } set { _pmtpresent = value; } }
-        public string Providername { get { return _providername; } set { _providername = value; } }
-        public string Servicename { get; set; }
+        public string Providername { get { return m_providername; } set { m_providername = value; } }
+        public string Servicename { get {return (lcn != 0)?lcn + ". " + m_servicename:m_servicename; } set { m_servicename = value; } }
         public int Servicetype {   get; set; }
         public _descriptorlevel CAlevel { get { return _CAlevel; } set { _CAlevel = value; } }
         public List<capid> Capids { get { return _capids; } set { _capids = value; } }
         public Transponder transponder { get { return _transponder; } set { _transponder = value; } }
-
+        public List<ComponentDescriptor> componentdescriptors { get; set; }
+        public ushort pcr_pid { get; set; }
+        public int lcn { get; set; }
         public bool isRadioService()
         {
-            if (Servicetype == 0x02 || Servicetype == 0x07)
+            if (Servicetype == 0x02 || Servicetype == 0x07 || Servicetype == 0x0A)
                 return true;
             else
                 return false;
@@ -66,6 +68,7 @@ namespace Sat2Ip
             _transponder = transponder;
             _pmt = new List<Sat2Ip.Stream>();
             _capids = new List<capid>();
+            componentdescriptors = new List<ComponentDescriptor>();
             Servicename = "";
         }
         public List<int> getPids()
@@ -104,5 +107,6 @@ namespace Sat2Ip
         {
             return _transponder.getQuery() + "&pids="+  getPidString();
         }
+
     }
 }

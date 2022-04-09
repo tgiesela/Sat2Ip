@@ -11,6 +11,7 @@ using System.Reflection;
 using System.IO;
 using System.Diagnostics;
 using Sat2IpGui.SatUtils;
+using Interfaces;
 
 namespace Sat2IpGui
 {
@@ -24,6 +25,8 @@ namespace Sat2IpGui
         private List<Channel> channels = new();
         private Process VLC;
         private Config config = new Config();
+        private bool orderbylcn = false;
+        private List<Channel> m_unfilteredchannels;
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         public class ListBoxItem
@@ -63,31 +66,36 @@ namespace Sat2IpGui
             lnb.load();
             foreach (Channel c in lnb.channels)
             {
-                if (c.isDataService() & !cbData.Checked) { continue; };
-                if (c.isRadioService() & !cbRadio.Checked) { continue; };
-                if (c.isTVService() & !cbTV.Checked) { continue; };
-                if (c.Programnumber == 0) { continue;  };
-                if (c.Servicetype == 0) { continue; };
                 channels.Add(c);
-                }
+            }
         }
         private void LoadChannels()
         {
             channels.Clear();
-            for (int i = 0; i < config.configitems.lnb.Length; i++)
+            for (int i = 0; i < config.configitems.lnbs.Length; i++)
             {
-                loadChannelsFromTransponder(config.configitems.lnb[i]);
+                loadChannelsFromTransponder(config.configitems.lnbs[i]);
             }
             lbChannels.Items.Clear();
             channels = channels.OrderBy(c => c.Servicename).ToList();
+            populateChannels();
+        }
+        private void populateChannels()
+        {
             lbChannels.Items.Clear();
             foreach (Channel c in channels)
             {
+                if (c.isDataService() & !cbData.Checked) { continue; };
+                if (c.isRadioService() & !cbRadio.Checked) { continue; };
+                if (c.isTVService() & !cbTV.Checked) { continue; };
+                if (c.Programpid == 0) { continue; };
+                if (c.Servicetype == 0) { continue; };
                 ListBoxItem item = new ListBoxItem();
                 item.obj = c;
                 item.textToDisplay = c.Servicename;
                 lbChannels.Items.Add(item);
             }
+            lvChannels.Items.Clear();
             lvChannels.Columns.Clear();
             lvChannels.Columns.Add("Channel");
             lvChannels.Columns.Add("Freq");
@@ -99,6 +107,11 @@ namespace Sat2IpGui
                 values[0] = c.Servicename;
                 values[1] = c.transponder.frequency.ToString();
                 values[2] = c.transponder.diseqcposition.ToString();
+                if (c.isDataService() & !cbData.Checked) { continue; };
+                if (c.isRadioService() & !cbRadio.Checked) { continue; };
+                if (c.isTVService() & !cbTV.Checked) { continue; };
+                if (c.Programpid == 0) { continue; };
+                if (c.Servicetype == 0) { continue; };
                 ListViewItem item = new ListViewItem(values);
                 lvChannels.Items.Add(item);
             }
@@ -255,17 +268,17 @@ namespace Sat2IpGui
 
         private void cbRadio_CheckedChanged(object sender, EventArgs e)
         {
-            LoadChannels();
+            populateChannels();
         }
 
         private void cbTV_CheckedChanged(object sender, EventArgs e)
         {
-            LoadChannels();
+            populateChannels();
         }
 
         private void cbData_CheckedChanged(object sender, EventArgs e)
         {
-            LoadChannels();
+            populateChannels();
         }
 
         private void myVlcControl_Click(object sender, EventArgs e)
@@ -276,7 +289,7 @@ namespace Sat2IpGui
         private void btnVLC_Click(object sender, EventArgs e)
         {
             if (myVlcControl.IsPlaying)
-            { 
+            {
                 myVlcControl.Stop();
             }
             VLC.Start();
@@ -285,6 +298,58 @@ namespace Sat2IpGui
         private void myVlcControl_VideoOutChanged(object sender, VlcMediaPlayerVideoOutChangedEventArgs e)
         {
             myVlcControl.VlcMediaPlayer.Audio.Volume = 30;
+        }
+
+        private void assignToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            orderbylcn = true;
+            frmBouquet frmbouquet = new frmBouquet();
+            DialogResult rslt = frmbouquet.ShowDialog();
+            if (rslt == DialogResult.OK)
+            {
+                if (frmbouquet.fastscanlocation != null)
+                {
+                    frmbouquet.fastscanlocation.assign(channels);
+                    channels = channels.OrderBy(c => c.lcn).ToList();
+                }
+                else
+                {
+                    if (frmbouquet.DVBBouquet != null)
+                    {
+                        frmbouquet.DVBBouquet.assign(channels);
+                        channels = channels.OrderBy(c => c.lcn).ToList();
+                    }
+                    else
+                    {
+                        channels = channels.OrderBy(c => c.Servicename).ToList();
+                        foreach (Channel c in channels)
+                        {
+                            c.lcn = 0;
+                        }
+                    }
+                }
+                populateChannels();
+            }
+        }
+
+        private void filterToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (m_unfilteredchannels == null)
+                m_unfilteredchannels = channels;
+            frmFilter frmfilter = new frmFilter();
+            DialogResult rslt = frmfilter.ShowDialog();
+            if (rslt == DialogResult.OK)
+            {
+                channels = frmfilter.assign(m_unfilteredchannels);
+                if (frmfilter.fastscanlocation != null)
+                {
+                    channels = frmfilter.fastscanlocation.channels();
+                    frmfilter.fastscanlocation.assign(channels);
+                    channels = channels.OrderBy(c => c.lcn).ToList();
+                }
+
+                populateChannels();
+            }
         }
     }
 }

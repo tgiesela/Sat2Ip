@@ -8,6 +8,9 @@ namespace Interfaces
 {
     public abstract class DVBBase
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         public struct tableHeader
         {
             public int syntaxindicator;
@@ -19,19 +22,38 @@ namespace Interfaces
             public int sectionnr;
             public int lastsectionnr;
         };
-        internal class section
+        private class section
         {
             internal byte[] data;
         }
-        internal section[] msgsections;
-        internal bool _complete;
+        private section[] msgsections;
+        private bool _complete;
         public bool complete { get { return _complete; } set { _complete = value; } }
         internal DVBBase()
         {
             _complete = false;
         }
-        public void addsection(tableHeader hdr, Span<byte> span)
+        public virtual bool verifyCRC(Span<byte> msg, Span<byte> crcreceived)
         {
+            uint crccalculated = Utils.Utils.crc32bmpeg2(msg, msg.Length);
+            if (BitConverter.ToUInt32(crcreceived) == crccalculated)
+                return false;
+            else
+                return true;
+        }
+        public virtual void addsection(tableHeader hdr, Span<byte> span)
+        {
+            if (!verifyCRC(span.Slice(1), span.Slice(1 + span.Length - 5, 4)))
+            {
+                log.DebugFormat("CRC Invalid, section not added");
+                return;
+            }
+            if (span.Length < hdr.sectionlength - 5) /* Section includes 5 bytes of the header */
+            {
+                log.DebugFormat("Short payload! Length msg: {0}, Length header: {1}", span.Length, hdr.sectionlength);
+                return;
+            }
+
             if (msgsections == null)
             {
                 int nrofsections = hdr.lastsectionnr + 1;
@@ -60,6 +82,7 @@ namespace Interfaces
         abstract protected void processsection(Span<byte> span);
         internal static string getStringFromDescriptor(byte[] descriptor, int offset, ref int lenused)
         {
+            if (descriptor.Length <= 0)  return null;
             int strlen = descriptor[offset];
             int strencoding;
             if (strlen > 0)

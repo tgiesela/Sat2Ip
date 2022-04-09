@@ -29,7 +29,7 @@ namespace Sat2IpGui
             comboboxes = new ComboBox[] { cmbSatellites1, cmbSatellites2, cmbSatellites3, cmbSatellites4 };
 
             satreader = new SatUtils.SatelliteReader();
-            listinfo = satreader.read(@"satellites.csv");
+            listinfo = satreader.read(Utils.Utils.getStorageFolder() + @"satellites.csv");
             config = new Config();
             config.load();
 
@@ -39,13 +39,13 @@ namespace Sat2IpGui
             }
             if (config.configitems != null)
             {
-                for (int i = 0; i < config.configitems.lnb.Length; i++)
+                for (int i = 0; i < config.configitems.lnbs.Length; i++)
                 {
-                    if (config.configitems.lnb[i] != null)
+                    if (config.configitems.lnbs[i] != null)
                     {
                         checkboxes[i].Checked = true;
                         comboboxes[i].Enabled = true;
-                        comboboxes[i].SelectedItem = config.configitems.lnb[i].satellitename;
+                        comboboxes[i].SelectedItem = config.configitems.lnbs[i].satellitename;
                     }
                     else
                     {
@@ -74,18 +74,18 @@ namespace Sat2IpGui
             {
                 if (checkboxes[i].Checked)
                 {
-                    if (config.configitems.lnb[i] == null)
+                    if (config.configitems.lnbs[i] == null)
                     {
-                        config.configitems.lnb[i] = new LNB(i+1);
+                        config.configitems.lnbs[i] = new LNB(i+1);
                     }
-                    config.configitems.lnb[i].satellitename = comboboxes[i].Text;
-                    config.configitems.lnb[i].diseqcposition = i + 1;
+                    config.configitems.lnbs[i].satellitename = comboboxes[i].Text;
+                    config.configitems.lnbs[i].diseqcposition = i + 1;
                     task = DownloadFrequenciesAsync(cmbSatellites1.SelectedIndex);
                     await task;
                 }
                 else
                 {
-                    config.configitems.lnb[i] = null;
+                    config.configitems.lnbs[i] = null;
                 }
             }
 

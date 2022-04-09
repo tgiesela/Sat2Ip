@@ -27,6 +27,7 @@ namespace Interfaces
         {
             m_transponder = null;
             m_streams = new List<BatStream>();
+            bouquet_name = "";
         }
 
         private int processtransportstream(Span<byte> v)
@@ -200,6 +201,29 @@ namespace Interfaces
                 bytesprocessed += lenprocessed;
                 offset += lenprocessed;
             }
+        }
+
+        public void assign(List<Channel> channels)
+        {
+            foreach (Channel c in channels)
+            {
+                c.lcn = 99999;
+            }
+
+            int lcn = 1;
+            foreach (BatStream bs in streams)
+            {
+                foreach (ServiceListItem sli in bs.services)
+                {
+                    Channel c = channels.Find(x => x.service_id == sli.service_id);
+                    if (c != null)
+                    {
+                        c.lcn = lcn;
+                        lcn++;
+                    }
+                }
+            }
+
         }
     }
 }

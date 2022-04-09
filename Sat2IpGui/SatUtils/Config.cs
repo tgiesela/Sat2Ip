@@ -69,6 +69,21 @@ namespace Sat2IpGui.SatUtils
         {
             string filename;
             filename = Utils.Utils.getStorageFolder() + "config.json";
+            /* Reset large structures */
+            foreach (LNB lnb in m_configitems.lnbs)
+            {
+                if (lnb != null)
+                {
+                    if (lnb.networks != null)
+                        lnb.networks.Clear();
+                    if (lnb.transponders != null)
+                        lnb.transponders.Clear();
+                    if (lnb.channels != null)
+                        lnb.channels.Clear();
+                    if (lnb.bouquets != null)
+                        lnb.bouquets.Clear();
+                }
+            }
             string configfile = JsonSerializer.Serialize(m_configitems);
             File.WriteAllText(filename, configfile);
 
