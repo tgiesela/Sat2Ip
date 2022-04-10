@@ -21,6 +21,9 @@ namespace Sat2IpGui
         [STAThread]
         static void Main()
         {
+            /* Note: if you need console output for logging, set the Output type of the
+             *       project to console application instead of Windows application
+             */
             Application.EnableVisualStyles();
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.SetCompatibleTextRenderingDefault(false);

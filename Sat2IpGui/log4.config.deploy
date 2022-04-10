@@ -3,9 +3,20 @@
   <log4net>
     <root>
       <level value="INFO" />
+      <appender-ref ref="fileappender" />
       <appender-ref ref="console" />
     </root>
     <appender name="console" type="log4net.Appender.ConsoleAppender">
+      <layout type="log4net.Layout.PatternLayout">
+        <conversionPattern value="%date %level %logger - %message%newline" />
+      </layout>
+    </appender>
+    <appender name="fileappender" type="log4net.Appender.RollingFileAppender">
+      <file value="${TMP}\Sat2IpGui.log"/>
+      <rollingStyle value="Size"/>
+      <maxSizeRollBackups value="5"/>
+      <maximumFileSize value="50MB"/>
+      <appendToFile value="true" />
       <layout type="log4net.Layout.PatternLayout">
         <conversionPattern value="%date %level %logger - %message%newline" />
       </layout>

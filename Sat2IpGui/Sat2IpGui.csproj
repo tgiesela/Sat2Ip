@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0-windows</TargetFramework>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -37,6 +37,8 @@
     <ProjectReference Include="..\Descrambler\Descrambler.csproj" />
     <ProjectReference Include="..\FFDecsa\FFDecsa.vcxproj">
       <Private>True</Private>
+      <CopyLocalSatelliteAssemblies>True</CopyLocalSatelliteAssemblies>
+      <ReferenceOutputAssembly>True</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\Protocol\Protocol.csproj" />
     <ProjectReference Include="..\Scanner\Scanner.csproj" />
