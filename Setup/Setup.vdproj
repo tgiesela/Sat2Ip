@@ -15,13 +15,31 @@
     {
         "Entry"
         {
+        "MsmKey" = "8:_304AB4C8377E40449A480C9556FFFB7D"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_660A11886B244DD7B85BFD1F55CCB283"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_D54423318C604D7DA60CB4B58DC29ED5"
+        "MsmKey" = "8:_825A70BC3C4A4B14999752FC45B9169D"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_C63AEA624C584BA49EFE5B291B6D1D6C"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_DF14673B42A1488095332FEBC7B581A0"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -43,6 +61,22 @@
         "PrivateKeyFile" = "8:"
         "TimeStampServer" = "8:"
         "InstallerBootstrapper" = "3:2"
+            "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
+            {
+            "Enabled" = "11:TRUE"
+            "PromptEnabled" = "11:TRUE"
+            "PrerequisitesLocation" = "2:1"
+            "Url" = "8:"
+            "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.7.2"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.7.2 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.7.2"
+                    }
+                }
+            }
         }
         "Release"
         {
@@ -59,6 +93,22 @@
         "PrivateKeyFile" = "8:"
         "TimeStampServer" = "8:"
         "InstallerBootstrapper" = "3:2"
+            "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
+            {
+            "Enabled" = "11:TRUE"
+            "PromptEnabled" = "11:TRUE"
+            "PrerequisitesLocation" = "2:1"
+            "Url" = "8:"
+            "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.7.2"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.7.2 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.7.2"
+                    }
+                }
+            }
         }
     }
     "Deployable"
@@ -90,12 +140,52 @@
         }
         "File"
         {
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_D54423318C604D7DA60CB4B58DC29ED5"
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_304AB4C8377E40449A480C9556FFFB7D"
             {
-            "SourcePath" = "8:..\\Satellites.csv"
-            "TargetName" = "8:Satellites.csv"
+            "SourcePath" = "8:..\\Sat2IpGui\\Fastscan.json"
+            "TargetName" = "8:Fastscan.json"
+            "Tag" = "8:"
+            "Folder" = "8:_230253DF1E0047D4B2BD94346D8EB306"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_C63AEA624C584BA49EFE5B291B6D1D6C"
+            {
+            "SourcePath" = "8:..\\Sat2IpGui\\log4.config.deploy"
+            "TargetName" = "8:log4.config"
             "Tag" = "8:"
             "Folder" = "8:_43E27DA512D745DB975A36D8B902E5D1"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_DF14673B42A1488095332FEBC7B581A0"
+            {
+            "SourcePath" = "8:..\\Sat2IpGui\\Satellites.csv"
+            "TargetName" = "8:Satellites.csv"
+            "Tag" = "8:"
+            "Folder" = "8:_230253DF1E0047D4B2BD94346D8EB306"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Vital" = "11:TRUE"
@@ -116,6 +206,18 @@
         }
         "Folder"
         {
+            "{994432C3-9487-495D-8656-3E829A8DBDDE}:_230253DF1E0047D4B2BD94346D8EB306"
+            {
+            "DefaultLocation" = "8:[CommonAppDataFolder]\\Sat2IpGui"
+            "Name" = "8:ProgramData"
+            "AlwaysCreate" = "11:FALSE"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Property" = "8:NEWPROPERTY1"
+                "Folders"
+                {
+                }
+            }
             "{3C67513D-01DD-4637-8A68-80971EB9504F}:_43E27DA512D745DB975A36D8B902E5D1"
             {
             "DefaultLocation" = "8:[ProgramFilesFolder][Manufacturer]\\[ProductName]"
@@ -167,7 +269,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Sat2IpGui"
         "ProductCode" = "8:{840544D1-7257-41B2-A0B4-623CEBF681C4}"
-        "PackageCode" = "8:{2251365E-10DE-4CBD-81B9-C570D3CFB2FD}"
+        "PackageCode" = "8:{3B8915A2-0368-4BB7-8D68-C00ACA87C727}"
         "UpgradeCode" = "8:{4B8B4141-805E-456E-BDE1-B7B6D44A09B2}"
         "AspNetVersion" = "8:"
         "RestartWWWService" = "11:FALSE"
@@ -709,6 +811,34 @@
             "OutputConfiguration" = "8:"
             "OutputGroupCanonicalName" = "8:PublishItems"
             "OutputProjectGuid" = "8:{9705558D-59C7-4293-BB7B-B3F19AE4FEB0}"
+            "ShowKeyOutput" = "11:TRUE"
+                "ExcludeFilters"
+                {
+                }
+            }
+            "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_825A70BC3C4A4B14999752FC45B9169D"
+            {
+            "SourcePath" = "8:..\\x64\\Debug\\FFDecsa.dll"
+            "TargetName" = "8:"
+            "Tag" = "8:"
+            "Folder" = "8:_43E27DA512D745DB975A36D8B902E5D1"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            "ProjectOutputGroupRegister" = "3:1"
+            "OutputConfiguration" = "8:"
+            "OutputGroupCanonicalName" = "8:Built"
+            "OutputProjectGuid" = "8:{DC35F6B8-7CBB-4F45-BF41-DFE22BBE999C}"
             "ShowKeyOutput" = "11:TRUE"
                 "ExcludeFilters"
                 {

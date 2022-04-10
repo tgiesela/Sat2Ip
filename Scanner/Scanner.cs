@@ -65,22 +65,20 @@ namespace Sat2Ip
         private Payloads payloads;
         private List<Transponder> nit = new();
         private List<Network> m_networks = new();
-        private bool[] sdtsectionprocessed;
-        private bool[] patsectionprocessed;
-        private bool[] batsectionprocessed;
-        Dictionary<int, bool[]> pmtsections;
         private bool patreceived;
         private bool batreceived;
         private bool expectNIT;
         private bool sdtreceived;
         private bool catreceived;
         private bool nitreceived;
+        private bool pmtreceived;
         private Transponder m_transponder;
         private Bouquet m_bouquet;
         private Stopwatch m_stopwatch;
         private bool fstnetworkreceived;
         private bool fstlcnreceived;
         private bool m_fastscan;
+        private bool m_channelscan;
         private PAT m_pat;
         private SDT m_sdt;
 
@@ -100,11 +98,13 @@ namespace Sat2Ip
             patreceived = false;
             batreceived = false;
             sdtreceived = false;
+            pmtreceived = false;
             catreceived = false;
             nitreceived = false;
             fstnetworkreceived = false;
             fstlcnreceived = false;
             m_fastscan = false;
+            m_channelscan = false;
             SCANTIMEOUT = 20000;/* Default 20 seconds timeout */
         }
         public void stop()
@@ -118,12 +118,10 @@ namespace Sat2Ip
             patreceived = false;
             batreceived = false;
             sdtreceived = false;
+            pmtreceived = false;
             catreceived = false;
             nitreceived = false;
             expectNIT = false;
-            sdtsectionprocessed = null;
-            patsectionprocessed = null;
-            pmtsections = new Dictionary<int, bool[]>();
             m_sessionbouquets = new();
             m_sessionnetworks = new();
             payloads = new Payloads(processpayload);
@@ -178,7 +176,51 @@ namespace Sat2Ip
             log.DebugFormat("Scanning transponder complete: {0}, channels: {1}", tsp.frequency, m_pids.Count);
             return m_fstbouquet;
         }
+        public async Task<Channel> scanChannel(Channel channel)
+        {
+            m_channelscan = true;
+            patreceived = false;
+            batreceived = true;
+            sdtreceived = true;
+            catreceived = true;
+            pmtreceived = true;
+            nitreceived = false;
+            expectNIT = false;
+            m_channelscan = true;
+            m_sessionbouquets = new();
+            m_sessionnetworks = new();
+            payloads = new Payloads(processpayload);
+            m_pat = new PAT();
 
+            log.DebugFormat("Scanning transponder for PAT: {0}", channel.transponder.frequency);
+            Task scantask = ReadData();
+            m_transponder = channel.transponder;
+            scanquery = m_transponder.getQuery();
+            scanquery = scanquery + "&pids=0";
+            rtsp.commandSetup(scanquery);
+            rtsp.commandPlay("");
+
+            await scantask;
+
+            m_pids = new List<Channel>();
+            foreach (PATEntry entry in m_transponder.pids)
+            {
+                if (entry.serviceid == channel.service_id)
+                {
+                    m_pids.Add(channel);
+                    channel.Programpid = entry.programpid;
+                    break;
+                }
+            }
+            pmtreceived = false;
+            rtsp.commandPlay("?addpids=" + channel.Programpid);
+            scantask = ReadData();
+            await scantask;
+
+            rtsp.commandTeardown("");
+            log.DebugFormat("Scanning channel complete: {0}, channels: {1}", channel.transponder.frequency, channel.service_id);
+            return channel;
+        }
         protected void OnNITReceived()
         {
             log.Debug("NIT Received and processed");
@@ -206,7 +248,8 @@ namespace Sat2Ip
         }
         protected void OnPATReceived(EventArgs e)
         {
-            expectNIT = m_pat.expectNIT;
+            if (!m_channelscan)
+                expectNIT = m_pat.expectNIT;
             patreceived = true;
             m_transponder.pids = m_pat.pids;
 
@@ -220,6 +263,15 @@ namespace Sat2Ip
         }
         protected void OnPMTReceived(int payloadpid)
         {
+            bool allpmtsreceived = true;
+            foreach (Channel c in m_pids)
+            {
+                if (c.Pmtpresent == false)
+                    allpmtsreceived = false;
+
+            }
+            if (allpmtsreceived)
+                pmtreceived = true;
             rtsp.commandPlay("?delpids=" + payloadpid);
         }
         protected void OnSDTReceived()
@@ -305,7 +357,7 @@ namespace Sat2Ip
                     return true;
             if (!batreceived && m_stopwatch.Elapsed.TotalSeconds > 10)
                 batreceived = true; /* BAT is optional, so if not received within the transmission interval, assume it was there */
-            if (sdtreceived && patreceived && batreceived)
+            if (sdtreceived && patreceived && batreceived && pmtreceived)
             {
                 if (expectNIT)
                 {
@@ -635,38 +687,6 @@ namespace Sat2Ip
             catch (Exception ex)
             {
                 log.Debug("Malformed NIT section!! Exception is :" + ex.Message);
-            }
-        }
-        private void processdescriptor(byte[] descriptor, Channel channel, Channel._descriptorlevel level, Stream stream)
-        {
-            switch (descriptor[0])
-            {
-                case 0x09:/* CA descriptor */
-                    ushort CA_system_ID = Utils.Utils.toShort(descriptor[2],descriptor[3]);
-                    ushort CA_PID = Utils.Utils.toShort((byte)(descriptor[4] & 0x1F), descriptor[5]);
-                    channel.CAlevel = level;
-
-                    if (level == Channel._descriptorlevel.program)
-                    {
-                        log.Debug(String.Format("CA descriptor at program level. PID {0}, Systemid {1}",CA_PID ,CA_system_ID ));
-                        capid capid = new capid();
-                        capid.CA_PID = CA_PID;
-                        capid.CA_System_ID = CA_system_ID;
-                        capid.Cadescriptor = descriptor;
-                        channel.Capids.Add(capid);
-                    }
-                    else
-                    {
-                        if (stream == null)
-                            throw new Exception("CA level is stream, but stream is absent");
-                        log.Debug(String.Format("CA descriptor at stream level. PID {0}, Systemid {1}", CA_PID, CA_system_ID));
-                        capid capid = new capid();
-                        capid.CA_PID = CA_PID;
-                        capid.CA_System_ID = CA_system_ID;
-                        capid.Cadescriptor = descriptor;
-                        stream.capids.Add(capid);
-                    }
-                    break;
             }
         }
         private Channel findChannel(int payloadpid)

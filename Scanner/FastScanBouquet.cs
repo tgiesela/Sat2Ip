@@ -1,4 +1,5 @@
 ﻿using Sat2Ip;
+using Sat2IpGui.SatUtils;
 using System;
 using System.Collections.Generic;
 
@@ -34,9 +35,24 @@ namespace Interfaces
                     c.lcn = highestlcn++;
             }
         }
-        public List<Channel> channels()
+        public List<Channel> channels(LNB [] lnbs)
         {
             List<Channel> channels = new List<Channel>();
+
+            foreach (Transponder tsp in network.transponders)
+            {
+                for (int i = 0; i < lnbs.Length; i++)
+                {
+                    if (lnbs[i] == null) continue;
+                    int orbit = Utils.Utils.bcdtoint(tsp.orbit);
+                    if (orbit == lnbs[i].orbit())
+                    {
+                        tsp.diseqcposition = lnbs[i].diseqcposition;
+                        break;
+                    }
+                }
+            }
+
             foreach (FastScanProgramInfo fspi in programInfos)
             {
                 Transponder tsp = network.transponders.Find(x => x.transportstreamid == fspi.streamid);
@@ -55,7 +71,7 @@ namespace Interfaces
                     c.service_id = fspi.serviceid;
                     c.Providername = fspi.packagename;
                     log.DebugFormat("{0}:{1}:TV? {2}",fspi.channelname, fspi.packagename,c.isTVService());
-                    // Utils.Utils.DumpBytes(fspi.remainingbytes, fspi.remainingbytes.Length);
+                    Utils.Utils.DumpBytes(fspi.remainingbytes, fspi.remainingbytes.Length);
                     channels.Add(c);
                 }
             }

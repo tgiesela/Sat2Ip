@@ -361,7 +361,6 @@ namespace Sat2IpGui
             btnClose.Enabled = true;
             btnStop.Enabled = false;
         }
-
         private void printlinkagedetails(Linkage l)
         {
             List<Network> networks = scanner.networks;
@@ -380,7 +379,6 @@ namespace Sat2IpGui
                 log.DebugFormat("        service: {0}", c.Servicename);
             }
         }
-
         private List<Transponder> getTranspondersFromNetwork(List<Network> networks)
         {
             List<Transponder> _tsps = new List<Transponder>();

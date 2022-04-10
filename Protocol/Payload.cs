@@ -132,11 +132,12 @@ namespace Protocol
             Payload payload = findPayload(packet.pid, packet.payloadstartindicator);
             if (payload != null)
             {
-                if (!payload.isnextcc(packet.continuitycounter))
-                {
-                    log.DebugFormat("CC-error for PID {0} (0x{0:X4}), CC-received: {1}. PAYLOAD RESET!", payload.payloadpid, packet.continuitycounter);
-                    payload.clear();
-                }
+                if (packet.adaptation != 0x02) /* Belongs to previous packet */
+                    if (!payload.isnextcc(packet.continuitycounter))
+                    {
+                        log.DebugFormat("CC-error for PID {0} (0x{0:X4}), CC-received: {1}. PAYLOAD RESET!", payload.payloadpid, packet.continuitycounter);
+                        payload.clear();
+                    }
             }
             if (packet.payloadstartindicator == 1) /* Start of payload */
             {

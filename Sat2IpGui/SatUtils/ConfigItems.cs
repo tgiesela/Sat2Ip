@@ -11,13 +11,16 @@ namespace Sat2IpGui.SatUtils
     {
         private LNB[] m_lnb = new LNB[4];
         public LNB[] lnbs { get { return m_lnb; } set { m_lnb = value; } }
-
         public string OscamServer { get; set; }
         public string OscamPort { get; set; }
         public string IpAddressDevice { get; set; }
+        public ChannelFilter channelFilter { get; set; }
+        public ChannelNumbering channelNumbering { get; set; }
         public string PortDevice { get; set; }
         public ConfigItems()
         {
+            channelNumbering = new ChannelNumbering();
+            channelFilter = new ChannelFilter();
         }
 
     }

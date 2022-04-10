@@ -91,10 +91,9 @@ namespace Sat2Ip
             }
             return pids;
         }
-        public String getPidString()
+        public string getPidString()
         {
-            String pids = String.Empty;
-            pids = "0";
+            string pids = "0";
             if (Capids.Count > 0)
                 pids = pids + ",1";
             foreach (int p in this.getPids())
@@ -103,7 +102,7 @@ namespace Sat2Ip
             }
             return pids;
         }
-        public String getPlayString()
+        public string getPlayString()
         {
             return _transponder.getQuery() + "&pids="+  getPidString();
         }

@@ -12,6 +12,7 @@ using System.IO;
 using System.Diagnostics;
 using Sat2IpGui.SatUtils;
 using Interfaces;
+using System.Threading.Tasks;
 
 namespace Sat2IpGui
 {
@@ -25,8 +26,8 @@ namespace Sat2IpGui
         private List<Channel> channels = new();
         private Process VLC;
         private Config config = new Config();
-        private bool orderbylcn = false;
         private List<Channel> m_unfilteredchannels;
+        private ChannelFilter m_cf;
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         public class ListBoxItem
@@ -42,7 +43,8 @@ namespace Sat2IpGui
         {
             InitializeComponent();
             config.load();
-            cbTV.Checked = true;
+            m_cf = config.configitems.channelFilter;
+
             LoadChannels();
             UriBuilder uribld = new UriBuilder();
             uribld.Scheme = "rtp";
@@ -78,6 +80,8 @@ namespace Sat2IpGui
             }
             lbChannels.Items.Clear();
             channels = channels.OrderBy(c => c.Servicename).ToList();
+            assignChannelNumbers();
+            filterChannels();
             populateChannels();
         }
         private void populateChannels()
@@ -85,9 +89,17 @@ namespace Sat2IpGui
             lbChannels.Items.Clear();
             foreach (Channel c in channels)
             {
-                if (c.isDataService() & !cbData.Checked) { continue; };
-                if (c.isRadioService() & !cbRadio.Checked) { continue; };
-                if (c.isTVService() & !cbTV.Checked) { continue; };
+                if (c.isDataService() && !m_cf.Data) { continue; };
+                if (c.isRadioService() && !m_cf.Radio) { continue; };
+                if (c.isTVService() && !m_cf.TV) { continue; };
+                if ((c.free_CA_mode != 0) && m_cf.FTA) { continue; };
+                if (m_cf.provider != null)
+                    if (m_cf.provider != String.Empty)
+                        if (!c.Providername.Equals(m_cf.provider, StringComparison.OrdinalIgnoreCase)) { continue; };
+                if (m_cf.frequency != null)
+                    if (m_cf.frequency.frequency != c.transponder.frequency) { continue; };
+                if (m_cf.lnb != null)
+                    if (m_cf.lnb.diseqcposition != c.transponder.diseqcposition) { continue; };
                 if (c.Programpid == 0) { continue; };
                 if (c.Servicetype == 0) { continue; };
                 ListBoxItem item = new ListBoxItem();
@@ -95,27 +107,6 @@ namespace Sat2IpGui
                 item.textToDisplay = c.Servicename;
                 lbChannels.Items.Add(item);
             }
-            lvChannels.Items.Clear();
-            lvChannels.Columns.Clear();
-            lvChannels.Columns.Add("Channel");
-            lvChannels.Columns.Add("Freq");
-            lvChannels.Columns.Add("LNB");
-            lvChannels.View = View.Details;
-            foreach (Channel c in channels)
-            {
-                string[] values = new string[3];
-                values[0] = c.Servicename;
-                values[1] = c.transponder.frequency.ToString();
-                values[2] = c.transponder.diseqcposition.ToString();
-                if (c.isDataService() & !cbData.Checked) { continue; };
-                if (c.isRadioService() & !cbRadio.Checked) { continue; };
-                if (c.isTVService() & !cbTV.Checked) { continue; };
-                if (c.Programpid == 0) { continue; };
-                if (c.Servicetype == 0) { continue; };
-                ListViewItem item = new ListViewItem(values);
-                lvChannels.Items.Add(item);
-            }
-
         }
         private void btnPlay_Click(object sender, EventArgs e)
         {
@@ -123,7 +114,7 @@ namespace Sat2IpGui
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-        private void Play()
+        private async void Play()
         {
             int inx = lbChannels.SelectedIndex;
             if (inx < 0)
@@ -132,6 +123,11 @@ namespace Sat2IpGui
             {
                 ListBoxItem item = (ListBoxItem)lbChannels.Items[inx];
                 Channel pid = (Channel)item.obj;
+                if (pid.Pmtpresent == false)
+                {
+                    Scanner scanner = new Scanner(rtsp.Startport, rtsp.Endport, rtsp);
+                    Channel channeltask = await scanner.scanChannel(pid);
+                }
                 String stream = pid.getPlayString() + ",17";
                 log.Debug("stream: " + stream);
                 try
@@ -172,7 +168,6 @@ namespace Sat2IpGui
             string message = string.Format("libVlc : {0} {1} @ {2}", e.Level, e.Message, e.Module);
             System.Diagnostics.Debug.WriteLine(message);
         }
-
         private void btnStop_Click(object sender, EventArgs e)
         {
             Stop();
@@ -189,12 +184,10 @@ namespace Sat2IpGui
                 rtsp.commandTeardown("");
             }
         }
-
         private void ServerToolStripMenuItem_Click(object sender, EventArgs e)
         {
             openServerConfig();
         }
-
         private void openServerConfig()
         {
             frmServer server = new frmServer();
@@ -217,7 +210,6 @@ namespace Sat2IpGui
             {
             }
         }
-
         private void findChannelsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             FrmFindChannels findchannels = new FrmFindChannels();
@@ -227,7 +219,6 @@ namespace Sat2IpGui
                 LoadChannels();
             }
         }
-
         private void lbChannels_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (lbChannels.SelectedItem != null)
@@ -259,33 +250,27 @@ namespace Sat2IpGui
                 }
             }
         }
-
         private void lbChannels_DoubleClick(object sender, EventArgs e)
         {
             Stop();
             Play();
         }
-
         private void cbRadio_CheckedChanged(object sender, EventArgs e)
         {
             populateChannels();
         }
-
         private void cbTV_CheckedChanged(object sender, EventArgs e)
         {
             populateChannels();
         }
-
         private void cbData_CheckedChanged(object sender, EventArgs e)
         {
             populateChannels();
         }
-
         private void myVlcControl_Click(object sender, EventArgs e)
         {
 
         }
-
         private void btnVLC_Click(object sender, EventArgs e)
         {
             if (myVlcControl.IsPlaying)
@@ -299,24 +284,31 @@ namespace Sat2IpGui
         {
             myVlcControl.VlcMediaPlayer.Audio.Volume = 30;
         }
-
         private void assignToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            orderbylcn = true;
             frmBouquet frmbouquet = new frmBouquet();
             DialogResult rslt = frmbouquet.ShowDialog();
             if (rslt == DialogResult.OK)
             {
-                if (frmbouquet.fastscanlocation != null)
+                assignChannelNumbers();
+            }
+        }
+        private void assignChannelNumbers()
+        {
+            config.load();
+            ChannelNumbering cn = config.configitems.channelNumbering;
+            if (cn != null)
+            {
+                if (cn.fastscanlocation != null)
                 {
-                    frmbouquet.fastscanlocation.assign(channels);
+                    cn.fastscanlocation.assign(channels);
                     channels = channels.OrderBy(c => c.lcn).ToList();
                 }
                 else
                 {
-                    if (frmbouquet.DVBBouquet != null)
+                    if (cn.DVBBouquet != null)
                     {
-                        frmbouquet.DVBBouquet.assign(channels);
+                        cn.DVBBouquet.assign(channels);
                         channels = channels.OrderBy(c => c.lcn).ToList();
                     }
                     else
@@ -328,10 +320,9 @@ namespace Sat2IpGui
                         }
                     }
                 }
-                populateChannels();
             }
+            populateChannels();
         }
-
         private void filterToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (m_unfilteredchannels == null)
@@ -340,15 +331,21 @@ namespace Sat2IpGui
             DialogResult rslt = frmfilter.ShowDialog();
             if (rslt == DialogResult.OK)
             {
-                channels = frmfilter.assign(m_unfilteredchannels);
-                if (frmfilter.fastscanlocation != null)
+                filterChannels();
+                populateChannels();
+            }
+        }
+        private void filterChannels()
+        {
+            config.load();
+            m_cf = config.configitems.channelFilter;
+            if (m_cf != null)
+            {
+                if (m_cf.fastScanBouquet != null)
                 {
-                    channels = frmfilter.fastscanlocation.channels();
-                    frmfilter.fastscanlocation.assign(channels);
+                    m_cf.fastScanBouquet.assign(channels);
                     channels = channels.OrderBy(c => c.lcn).ToList();
                 }
-
-                populateChannels();
             }
         }
     }

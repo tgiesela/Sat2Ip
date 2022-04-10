@@ -16,6 +16,7 @@ namespace Sat2IpGui
     public partial class frmBouquet : Form
     {
         private Config config = new Config();
+        private ChannelNumbering m_channelNumbering;
         private List<Bouquet> m_bouquets = new List<Bouquet>();
         public class ListBoxItem
         {
@@ -29,8 +30,6 @@ namespace Sat2IpGui
                     return "<noname>";
             }
         }
-        public FastScanBouquet fastscanlocation { get; set; }
-        public Bouquet DVBBouquet { get; set; }
         public frmBouquet()
         {
             InitializeComponent();
@@ -39,11 +38,13 @@ namespace Sat2IpGui
         private void populateComboboxes()
         {
             config.load();
+            m_channelNumbering = config.configitems.channelNumbering;
             m_bouquets.Clear();
             for (int i = 0; i < config.configitems.lnbs.Length; i++)
             {
                 loadBouquets(config.configitems.lnbs[i]);
             }
+            cmbDVBBouquets.Items.Add(createEmtpyItem());
             foreach (Bouquet b in m_bouquets)
             {
                 ListBoxItem item = new ListBoxItem();
@@ -51,6 +52,7 @@ namespace Sat2IpGui
                 item.textToDisplay = b.bouquet_name;
                 cmbDVBBouquets.Items.Add(item);
             }
+            cmbFastscanBouquets.Items.Add(createEmtpyItem());
             foreach (FastScanBouquet fsb in config.FastcanBouquets)
             {
                 ListBoxItem item = new ListBoxItem();
@@ -58,6 +60,21 @@ namespace Sat2IpGui
                 item.textToDisplay = "(" + fsb.location.frequency / 1000 + ") - " + fsb.location.name;
                 cmbFastscanBouquets.Items.Add(item);
             }
+            if (m_channelNumbering.fastscanlocation != null)
+            {
+                cmbFastscanBouquets.Text = "(" + m_channelNumbering.fastscanlocation.location.frequency / 1000 + ") - " + m_channelNumbering.fastscanlocation.location.name;
+            }
+            if (m_channelNumbering.DVBBouquet != null)
+            {
+                cmbDVBBouquets.Text = m_channelNumbering.DVBBouquet.bouquet_name;
+            }
+        }
+        private ListBoxItem createEmtpyItem()
+        {
+            ListBoxItem item = new ListBoxItem();
+            item.obj = null;
+            item.textToDisplay = "[]";
+            return item;
         }
         private void loadBouquets(LNB lnb)
         {
@@ -77,22 +94,23 @@ namespace Sat2IpGui
         {
             if (cmbDVBBouquets.SelectedIndex < 0)
             {
-                DVBBouquet = null;
+                m_channelNumbering.DVBBouquet = null;
             }
             else
             {
                 ListBoxItem item = (ListBoxItem)cmbDVBBouquets.SelectedItem;
-                DVBBouquet = (Bouquet)item.obj;
+                m_channelNumbering.DVBBouquet = (Bouquet)item.obj;
             }
             if (cmbFastscanBouquets.SelectedIndex < 0)
             {
-                fastscanlocation = null;
+                m_channelNumbering.fastscanlocation = null;
             }
             else
             {
                 ListBoxItem item = (ListBoxItem)cmbFastscanBouquets.SelectedItem;
-                fastscanlocation = (FastScanBouquet)item.obj;
+                m_channelNumbering.fastscanlocation = (FastScanBouquet)item.obj;
             }
+            config.save();
         }
         private void cmbFastscanBouquets_SelectedIndexChanged(object sender, EventArgs e)
         {

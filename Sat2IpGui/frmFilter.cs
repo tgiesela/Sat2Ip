@@ -20,11 +20,13 @@ namespace Sat2IpGui
         private List<Network> m_networks = new List<Network>();
         private List<Transponder> m_transponders = new List<Transponder>();
         private List<string> m_providers = new List<string>();
-        public FastScanBouquet fastscanlocation { get; set; }
-        public Bouquet DVBBouquet { get; set; }
-        public Transponder frequency { get; private set; }
-        public LNB lnb { get; private set; }
-        public string provider { get; private set; }
+        private ChannelFilter m_channelFilter;
+
+//        public FastScanBouquet fastscanlocation { get; set; }
+//        public Bouquet DVBBouquet { get; set; }
+//        public Transponder frequency { get; private set; }
+//        public LNB lnb { get; private set; }
+//        public string provider { get; private set; }
         public class ListBoxItem
         {
             public Object obj;
@@ -45,7 +47,9 @@ namespace Sat2IpGui
         private void populateComboboxes()
         {
             config.load();
+            m_channelFilter = config.configitems.channelFilter;
             m_bouquets.Clear();
+            cmbSatellites.Items.Add(createEmtpyItem());
             for (int i = 0; i < config.configitems.lnbs.Length; i++)
             {
                 LNB lnb = config.configitems.lnbs[i];
@@ -61,6 +65,7 @@ namespace Sat2IpGui
                     loadProviders(lnb);
                 }
             }
+            cmbDVBBouquets.Items.Add(createEmtpyItem());
             foreach (Bouquet b in m_bouquets)
             {
                 ListBoxItem item = new ListBoxItem();
@@ -68,6 +73,7 @@ namespace Sat2IpGui
                 item.textToDisplay = b.bouquet_name;
                 cmbDVBBouquets.Items.Add(item);
             }
+            cmbFastscanBouquets.Items.Add(createEmtpyItem());
             foreach (FastScanBouquet fsb in config.FastcanBouquets)
             {
                 ListBoxItem item = new ListBoxItem();
@@ -76,6 +82,7 @@ namespace Sat2IpGui
                 cmbFastscanBouquets.Items.Add(item);
             }
             m_providers = m_providers.OrderBy(x => x).ToList();
+            cmbProviders.Items.Add(createEmtpyItem());
             foreach (string provider in m_providers)
             {
                 ListBoxItem item = new ListBoxItem();
@@ -83,8 +90,43 @@ namespace Sat2IpGui
                 item.textToDisplay = provider;
                 cmbProviders.Items.Add(item);
             }
+            if (m_channelFilter.lnb != null)
+            {
+                cmbSatellites.Text = m_channelFilter.lnb.satellitename;
+                if (m_channelFilter.frequency != null)
+                {
+                    if (m_channelFilter.frequency.frequency != 0)
+                    {
+                        Transponder tsp = m_channelFilter.frequency;
+                        cmbFrequency.Text = tsp.frequency + "," + tsp.polarisation + "," + tsp.dvbsystem + "," + tsp.transportstreamid;
+                    }
+                }
+            }
+            if (m_channelFilter.fastScanBouquet != null)
+            {
+                string txt = "(" + m_channelFilter.fastScanBouquet.location.frequency / 1000 + ") - " + m_channelFilter.fastScanBouquet.location.name;
+                cmbFastscanBouquets.Text = txt;
+            }
+            if (m_channelFilter.provider != null && m_channelFilter.provider != string.Empty)
+            {
+                cmbProviders.Text = m_channelFilter.provider;
+            }
+            if (m_channelFilter.DVBBouquet != null)
+            {
+                cmbDVBBouquets.Text = m_channelFilter.DVBBouquet.bouquet_name;
+            }
+            cbRadio.Checked = m_channelFilter.Radio;
+            cbTV.Checked = m_channelFilter.TV;
+            cbData.Checked = m_channelFilter.Data;
+            cbFTA.Checked = m_channelFilter.FTA;
         }
-
+        private ListBoxItem createEmtpyItem()
+        {
+            ListBoxItem item = new ListBoxItem();
+            item.obj = null;
+            item.textToDisplay = "[]";
+            return item;
+        }
         private void loadProviders(LNB lnb)
         {
             foreach (Channel c in lnb.channels)
@@ -93,11 +135,12 @@ namespace Sat2IpGui
                     m_providers.Add(c.Providername);
             }
         }
-
         private void loadTransponders(LNB lnb)
         {
+            if (lnb == null) return;
             m_transponders = lnb.transponders;
             cmbFrequency.Items.Clear();
+            cmbFrequency.Items.Add(createEmtpyItem());
             foreach (Transponder tsp in m_transponders)
             {
                 ListBoxItem item = new ListBoxItem();
@@ -107,9 +150,10 @@ namespace Sat2IpGui
             }
         }
 
-        private void loadNetworks(LNB lNB)
+        private void loadNetworks(LNB lnb)
         {
-            m_networks.AddRange(lNB.networks);
+            if (lnb == null) return;
+            m_networks.AddRange(lnb.networks);
         }
 
         private void loadBouquets(LNB lnb)
@@ -162,62 +206,67 @@ namespace Sat2IpGui
         {
             if (cmbDVBBouquets.SelectedIndex < 0)
             {
-                DVBBouquet = null;
+                m_channelFilter.DVBBouquet = null;
             }
             else
             {
                 ListBoxItem item = (ListBoxItem)cmbDVBBouquets.SelectedItem;
-                DVBBouquet = (Bouquet)item.obj;
+                m_channelFilter.DVBBouquet = (Bouquet)item.obj;
             }
             if (cmbFastscanBouquets.SelectedIndex < 0)
             {
-                fastscanlocation = null;
+                m_channelFilter.fastScanBouquet = null;
             }
             else
             {
                 ListBoxItem item = (ListBoxItem)cmbFastscanBouquets.SelectedItem;
-                fastscanlocation = (FastScanBouquet)item.obj;
+                m_channelFilter.fastScanBouquet = (FastScanBouquet)item.obj;
             }
             if (cmbFrequency.SelectedIndex < 0)
             {
-                frequency = null;
+                m_channelFilter.frequency = null;
             }
             else
             {
                 ListBoxItem item = (ListBoxItem)cmbFrequency.SelectedItem;
-                frequency = (Transponder)item.obj;
+                m_channelFilter.frequency = (Transponder)item.obj;
             }
             if (cmbSatellites.SelectedIndex < 0)
             {
-                lnb = null;
+                m_channelFilter.lnb = null;
             }
             else
             {
                 ListBoxItem item = (ListBoxItem)cmbSatellites.SelectedItem;
-                lnb = (LNB)item.obj;
+                m_channelFilter.lnb = (LNB)item.obj;
             }
             if (cmbProviders.SelectedIndex < 0)
             {
-                provider = null;
+                m_channelFilter.provider = null;
             }
             else
             {
-                ListBoxItem item = (ListBoxItem)cmbSatellites.SelectedItem;
-                provider = (string)item.obj;
+                ListBoxItem item = (ListBoxItem)cmbProviders.SelectedItem;
+                m_channelFilter.provider = (string)item.obj;
             }
+            m_channelFilter.FTA = cbFTA.Checked;
+            m_channelFilter.TV = cbTV.Checked;
+            m_channelFilter.Radio = cbRadio.Checked;
+            m_channelFilter.Data =  cbData.Checked;
+            config.save();
         }
         public List<Channel> assign(List<Channel> channels)
         {
             List<Channel> list = new List<Channel>();
             foreach (Channel c in channels)
             {
-                if (provider != null) {
-                    if (!provider.Equals(c.Providername, StringComparison.OrdinalIgnoreCase))
+                if (m_channelFilter.provider != null) {
+                    if (!m_channelFilter.provider.Equals(c.Providername, StringComparison.OrdinalIgnoreCase))
                         continue;
                 }
-                if (frequency != null)
+                if (m_channelFilter.frequency != null)
                 {
-                    if (frequency.frequency != c.transponder.frequency)
+                    if (m_channelFilter.frequency.frequency != c.transponder.frequency)
                         continue;
                 }
                 if (cbData.Checked && !c.isDataService()) continue;

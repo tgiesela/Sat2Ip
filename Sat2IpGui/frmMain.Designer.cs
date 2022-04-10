@@ -38,14 +38,9 @@
             this.findChannelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.bouquetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.assignToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.lbChannels = new System.Windows.Forms.ListBox();
-            this.cbRadio = new System.Windows.Forms.CheckBox();
-            this.cbTV = new System.Windows.Forms.CheckBox();
-            this.cbData = new System.Windows.Forms.CheckBox();
-            this.btnVLC = new System.Windows.Forms.Button();
-            this.lvChannels = new System.Windows.Forms.ListView();
-            this.Channel = new System.Windows.Forms.ColumnHeader();
             this.filterToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.lbChannels = new System.Windows.Forms.ListBox();
+            this.btnVLC = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.myVlcControl)).BeginInit();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -148,9 +143,16 @@
             // assignToolStripMenuItem
             // 
             this.assignToolStripMenuItem.Name = "assignToolStripMenuItem";
-            this.assignToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.assignToolStripMenuItem.Size = new System.Drawing.Size(109, 22);
             this.assignToolStripMenuItem.Text = "Assign";
             this.assignToolStripMenuItem.Click += new System.EventHandler(this.assignToolStripMenuItem_Click);
+            // 
+            // filterToolStripMenuItem
+            // 
+            this.filterToolStripMenuItem.Name = "filterToolStripMenuItem";
+            this.filterToolStripMenuItem.Size = new System.Drawing.Size(109, 22);
+            this.filterToolStripMenuItem.Text = "Filter";
+            this.filterToolStripMenuItem.Click += new System.EventHandler(this.filterToolStripMenuItem_Click);
             // 
             // lbChannels
             // 
@@ -158,49 +160,13 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.lbChannels.FormattingEnabled = true;
             this.lbChannels.ItemHeight = 15;
-            this.lbChannels.Location = new System.Drawing.Point(500, 77);
+            this.lbChannels.Location = new System.Drawing.Point(500, 32);
             this.lbChannels.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.lbChannels.Name = "lbChannels";
-            this.lbChannels.Size = new System.Drawing.Size(285, 124);
+            this.lbChannels.Size = new System.Drawing.Size(285, 304);
             this.lbChannels.TabIndex = 6;
             this.lbChannels.SelectedIndexChanged += new System.EventHandler(this.lbChannels_SelectedIndexChanged);
             this.lbChannels.DoubleClick += new System.EventHandler(this.lbChannels_DoubleClick);
-            // 
-            // cbRadio
-            // 
-            this.cbRadio.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.cbRadio.AutoSize = true;
-            this.cbRadio.Location = new System.Drawing.Point(502, 37);
-            this.cbRadio.Name = "cbRadio";
-            this.cbRadio.Size = new System.Drawing.Size(56, 19);
-            this.cbRadio.TabIndex = 7;
-            this.cbRadio.Text = "Radio";
-            this.cbRadio.UseVisualStyleBackColor = true;
-            this.cbRadio.CheckedChanged += new System.EventHandler(this.cbRadio_CheckedChanged);
-            // 
-            // cbTV
-            // 
-            this.cbTV.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.cbTV.AutoSize = true;
-            this.cbTV.Location = new System.Drawing.Point(564, 37);
-            this.cbTV.Name = "cbTV";
-            this.cbTV.Size = new System.Drawing.Size(39, 19);
-            this.cbTV.TabIndex = 8;
-            this.cbTV.Text = "TV";
-            this.cbTV.UseVisualStyleBackColor = true;
-            this.cbTV.CheckedChanged += new System.EventHandler(this.cbTV_CheckedChanged);
-            // 
-            // cbData
-            // 
-            this.cbData.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.cbData.AutoSize = true;
-            this.cbData.Location = new System.Drawing.Point(609, 37);
-            this.cbData.Name = "cbData";
-            this.cbData.Size = new System.Drawing.Size(50, 19);
-            this.cbData.TabIndex = 9;
-            this.cbData.Text = "Data";
-            this.cbData.UseVisualStyleBackColor = true;
-            this.cbData.CheckedChanged += new System.EventHandler(this.cbData_CheckedChanged);
             // 
             // btnVLC
             // 
@@ -213,39 +179,12 @@
             this.btnVLC.UseVisualStyleBackColor = true;
             this.btnVLC.Click += new System.EventHandler(this.btnVLC_Click);
             // 
-            // lvChannels
-            // 
-            this.lvChannels.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.lvChannels.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.Channel});
-            this.lvChannels.Location = new System.Drawing.Point(502, 207);
-            this.lvChannels.Name = "lvChannels";
-            this.lvChannels.Size = new System.Drawing.Size(283, 132);
-            this.lvChannels.TabIndex = 11;
-            this.lvChannels.UseCompatibleStateImageBehavior = false;
-            // 
-            // Channel
-            // 
-            this.Channel.Text = "Channel";
-            this.Channel.Width = 100;
-            // 
-            // filterToolStripMenuItem
-            // 
-            this.filterToolStripMenuItem.Name = "filterToolStripMenuItem";
-            this.filterToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.filterToolStripMenuItem.Text = "Filter";
-            this.filterToolStripMenuItem.Click += new System.EventHandler(this.filterToolStripMenuItem_Click);
-            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(813, 380);
-            this.Controls.Add(this.lvChannels);
             this.Controls.Add(this.btnVLC);
-            this.Controls.Add(this.cbData);
-            this.Controls.Add(this.cbTV);
-            this.Controls.Add(this.cbRadio);
             this.Controls.Add(this.lbChannels);
             this.Controls.Add(this.myVlcControl);
             this.Controls.Add(this.btnStop);
@@ -273,12 +212,7 @@
         private System.Windows.Forms.ToolStripMenuItem satelliteSetupToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem findChannelsToolStripMenuItem;
         private System.Windows.Forms.ListBox lbChannels;
-        private System.Windows.Forms.CheckBox cbRadio;
-        private System.Windows.Forms.CheckBox cbTV;
-        private System.Windows.Forms.CheckBox cbData;
         private System.Windows.Forms.Button btnVLC;
-        private System.Windows.Forms.ListView lvChannels;
-        private System.Windows.Forms.ColumnHeader Channel;
         private System.Windows.Forms.ToolStripMenuItem bouquetToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem assignToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem filterToolStripMenuItem;
