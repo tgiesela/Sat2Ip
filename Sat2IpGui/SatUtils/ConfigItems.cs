@@ -17,6 +17,9 @@ namespace Sat2IpGui.SatUtils
         public ChannelFilter channelFilter { get; set; }
         public ChannelNumbering channelNumbering { get; set; }
         public string PortDevice { get; set; }
+        public bool FixedTuner { get; set; }
+        public decimal TunerNumber { get; set; }
+
         public ConfigItems()
         {
             channelNumbering = new ChannelNumbering();

@@ -214,8 +214,11 @@ namespace Sat2IpGui
             uribld.Host = config.configitems.IpAddressDevice;
             uribld.Port = int.Parse(config.configitems.PortDevice);
             RTSP rtsp = new RTSP(uribld.Uri);
-            rtsp.frontend = rtsp.getFreeTuner();
-            rtsp.frontend = 4;
+            if (config.configitems.FixedTuner)
+            {
+                // rtsp.frontend = rtsp.getFreeTuner();
+                rtsp.frontend = (int)config.configitems.TunerNumber;
+            }
             scanner = new Scanner(rtsp.Startport, rtsp.Endport, rtsp);
             if (m_LNB != null)
             {

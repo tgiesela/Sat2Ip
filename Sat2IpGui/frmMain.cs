@@ -55,8 +55,11 @@ namespace Sat2IpGui
             uribld.Host = config.configitems.IpAddressDevice;
             uribld.Port = int.Parse(config.configitems.PortDevice);
             rtsp = new RTSP(uribld.Uri);
-            rtsp.frontend = rtsp.getFreeTuner();
-            rtsp.frontend = 4;
+            if (config.configitems.FixedTuner)
+            {
+                // rtsp.frontend = rtsp.getFreeTuner();
+                rtsp.frontend = (int)config.configitems.TunerNumber;
+            }
             VLC = new System.Diagnostics.Process();
             VLC.StartInfo.FileName = myVlcControl.VlcLibDirectory.FullName + "\\vlc.exe";
             VLC.StartInfo.Arguments = "-vvv rtp://127.0.0.1:40002";

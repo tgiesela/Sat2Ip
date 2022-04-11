@@ -42,6 +42,11 @@
             this.txtOscamport = new System.Windows.Forms.TextBox();
             this.lblOscam = new System.Windows.Forms.Label();
             this.lblOscamport = new System.Windows.Forms.Label();
+            this.cbFixedTuner = new System.Windows.Forms.CheckBox();
+            this.numTuner = new System.Windows.Forms.NumericUpDown();
+            this.label1 = new System.Windows.Forms.Label();
+            this.txtIpAddressDevice = new System.Windows.Forms.TextBox();
+            ((System.ComponentModel.ISupportInitialize)(this.numTuner)).BeginInit();
             this.SuspendLayout();
             // 
             // cbLNB1
@@ -187,11 +192,59 @@
             this.lblOscamport.TabIndex = 13;
             this.lblOscamport.Text = "Port";
             // 
+            // cbFixedTuner
+            // 
+            this.cbFixedTuner.AutoSize = true;
+            this.cbFixedTuner.Location = new System.Drawing.Point(31, 215);
+            this.cbFixedTuner.Name = "cbFixedTuner";
+            this.cbFixedTuner.Size = new System.Drawing.Size(85, 19);
+            this.cbFixedTuner.TabIndex = 14;
+            this.cbFixedTuner.Text = "Fixed tuner";
+            this.cbFixedTuner.UseVisualStyleBackColor = true;
+            this.cbFixedTuner.CheckedChanged += new System.EventHandler(this.cbFixedTuner_CheckedChanged);
+            // 
+            // numTuner
+            // 
+            this.numTuner.Location = new System.Drawing.Point(122, 211);
+            this.numTuner.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numTuner.Name = "numTuner";
+            this.numTuner.Size = new System.Drawing.Size(49, 23);
+            this.numTuner.TabIndex = 16;
+            this.numTuner.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(31, 149);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(74, 15);
+            this.label1.TabIndex = 18;
+            this.label1.Text = "Sat2IP Server";
+            // 
+            // txtIpAddressDevice
+            // 
+            this.txtIpAddressDevice.Location = new System.Drawing.Point(115, 146);
+            this.txtIpAddressDevice.Name = "txtIpAddressDevice";
+            this.txtIpAddressDevice.Size = new System.Drawing.Size(100, 23);
+            this.txtIpAddressDevice.TabIndex = 17;
+            // 
             // FrmConfig
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(564, 381);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.txtIpAddressDevice);
+            this.Controls.Add(this.numTuner);
+            this.Controls.Add(this.cbFixedTuner);
             this.Controls.Add(this.lblOscamport);
             this.Controls.Add(this.lblOscam);
             this.Controls.Add(this.txtOscamport);
@@ -209,6 +262,7 @@
             this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.Name = "FrmConfig";
             this.Text = "Configuration";
+            ((System.ComponentModel.ISupportInitialize)(this.numTuner)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -230,5 +284,9 @@
         private System.Windows.Forms.TextBox txtOscamport;
         private System.Windows.Forms.Label lblOscam;
         private System.Windows.Forms.Label lblOscamport;
+        private System.Windows.Forms.CheckBox cbFixedTuner;
+        private System.Windows.Forms.NumericUpDown numTuner;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox txtIpAddressDevice;
     }
 }

@@ -56,7 +56,12 @@ namespace Sat2IpGui
                 }
                 txtOscamserver.Text = config.configitems.OscamServer;
                 txtOscamport.Text = config.configitems.OscamPort;
+                txtIpAddressDevice.Text = config.configitems.IpAddressDevice;
             }
+            cbFixedTuner.Checked = config.configitems.FixedTuner;
+            cbFixedTuner_CheckedChanged(null, null);
+            if (config.configitems.TunerNumber > 0)
+                numTuner.Value = config.configitems.TunerNumber;
         }
 
         private void LoadSatellites(ComboBox cmbSatellites)
@@ -89,8 +94,11 @@ namespace Sat2IpGui
                 }
             }
 
+            config.configitems.IpAddressDevice = txtIpAddressDevice.Text;
             config.configitems.OscamServer = txtOscamserver.Text;
             config.configitems.OscamPort = txtOscamport.Text;
+            config.configitems.FixedTuner = cbFixedTuner.Checked;
+            config.configitems.TunerNumber = numTuner.Value;
             config.save();
         }
 
@@ -157,6 +165,17 @@ namespace Sat2IpGui
             else
             {
                 cmbSatellites4.Enabled = false;
+            }
+        }
+        private void cbFixedTuner_CheckedChanged(object sender, EventArgs e)
+        {
+            if (cbFixedTuner.Checked)
+            {
+                numTuner.Enabled = true;
+            }
+            else
+            {
+                numTuner.Enabled = false;
             }
         }
     }
