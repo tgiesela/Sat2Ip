@@ -1,22 +1,18 @@
 ﻿using Interfaces;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
-namespace Sat2IpGui.SatUtils
+namespace Sat2ipUtils
 {
     public class Config
     {
         private List<FastScanLocation> m_fastscanlocations;
         private List<FastScanBouquet> m_fastscanbouquets;
         private ConfigItems m_configitems;
+        private dvbtype m_dvbtype = dvbtype.DVBS;
         public List<FastScanLocation> Fastscanlocations { get { return m_fastscanlocations; } set { m_fastscanlocations = value; } }
         public List<FastScanBouquet> FastcanBouquets { get { return m_fastscanbouquets; } set { m_fastscanbouquets = value; } }
         public ConfigItems configitems { get { return m_configitems; } set { m_configitems = value; } }
+        public enum dvbtype { DVBS = 0, DVBC = 1}
         public Config()
         {
             m_configitems = new ConfigItems();
@@ -37,7 +33,7 @@ namespace Sat2IpGui.SatUtils
                 m_fastscanlocations = new List<FastScanLocation>();
             }
 
-            filename = Utils.Utils.getStorageFolder() + "fastscan.json";
+            filename = getConfigFolder() + "fastscan.json";
             if (File.Exists(filename))
             {
                 string fastscan = File.ReadAllText(filename);
@@ -49,7 +45,7 @@ namespace Sat2IpGui.SatUtils
             }
             foreach (FastScanLocation location in m_fastscanlocations)
             {
-                filename = Utils.Utils.getStorageFolder() + MakeValidFileName("FSBouquet" + location.name + location.frequency + ".json");
+                filename = getStorageFolder() + MakeValidFileName("FSBouquet" + location.name + location.frequency + ".json");
                 if (File.Exists(filename))
                 {
                     string fsbstring = File.ReadAllText(filename);
@@ -58,6 +54,17 @@ namespace Sat2IpGui.SatUtils
                 }
             }
         }
+
+        private string getStorageFolder()
+        {
+            return Utils.Utils.getStorageFolder() + m_configitems.IpAddressDevice + "\\" + m_dvbtype.ToString() + "\\";
+        }
+        private string getConfigFolder()
+        {
+            return Utils.Utils.getStorageFolder() + m_dvbtype.ToString() + "\\";
+        }
+
+
         private static string MakeValidFileName(string name)
         {
             string invalidChars = System.Text.RegularExpressions.Regex.Escape(new string(System.IO.Path.GetInvalidFileNameChars()));
@@ -68,7 +75,7 @@ namespace Sat2IpGui.SatUtils
         public void save()
         {
             string filename;
-            filename = Utils.Utils.getStorageFolder() + "config.json";
+            filename = Utils.Utils.getStorageFolder()  + "config.json";
             /* Reset large structures */
             foreach (LNB lnb in m_configitems.lnbs)
             {

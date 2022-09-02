@@ -21,6 +21,8 @@ namespace Interfaces
         public List<ServiceListItem> networkservices { get; set; }
         public bool satellitenetwork { get { return satellite; } set { satellite = value; } }
         public bool terresrtialorcablenetwork { get { return terresrtialorcable; } set { terresrtialorcable = value; } }
+        public bool currentnetwork { get; set; }
+
         public Network(int _diseqcposition) : this()
         {
             diseqcposition = _diseqcposition;
@@ -115,18 +117,18 @@ namespace Interfaces
             {
                 descriptorlengthprocessed += processdescriptor(v.Slice(offset + descriptorlengthprocessed), tsp);
             }
-            Transponder existing = transponders.Find(x => x.transportstreamid == tsp.transportstreamid && x.network_id == tsp.network_id);
+            Transponder? existing = transponders.Find(x => x.transportstreamid == tsp.transportstreamid && x.network_id == tsp.network_id);
             if (existing != null)
             {
                 transponders.Remove(existing);
             }
-            if (tsp.frequency > 0 && satellitenetwork)
+            if (tsp.frequency > 0 && (satellitenetwork || terresrtialorcablenetwork))
                 transponders.Add(tsp);
 
             return descriptorlengthprocessed + 6;
         }
 
-        private int processdescriptor(Span<byte> v, Transponder tsp)
+        private int processdescriptor(Span<byte> v, Transponder? tsp)
         {
             int id = (int)v[0];
             int length = (int)v[1];
@@ -195,15 +197,15 @@ namespace Interfaces
                     while (bytesprocessed < loop_length)
                     {
                         ushort serviceid = Utils.Utils.toShort(v[bytesprocessed+2], v[bytesprocessed+3]); /* Program number */
-                        ushort lcn = Utils.Utils.toShort((byte)(v[bytesprocessed + 4] & 0x7F), v[bytesprocessed + 5]);
+                        ushort lcn = Utils.Utils.toShort((byte)(v[bytesprocessed + 4] ^ 0xFC), v[bytesprocessed + 5]);
                         //log.DebugFormat("    FS Stream: {0} ({0:X}), {1} - {2}", streamid, lcn, (v[bytesprocessed + 4] & 0x80)>>7);
-                        ServiceListItem service = networkservices.Find(x => x.service_id == serviceid);
+                        ServiceListItem? service = networkservices.Find(x => x.service_id == serviceid);
                         if (service == null)
                         {
                             service = new ServiceListItem();
                             service.service_id = serviceid;
                             service.lcn = lcn;
-                            service.lcnleftpart = v[bytesprocessed+4] & 0x7F;
+                            service.lcnleftpart = v[bytesprocessed+4] & 0xFC;
                             service.service_type = -1;
                             service.transportstreamid = tsp.transportstreamid;
                             networkservices.Add(service);
@@ -228,7 +230,7 @@ namespace Interfaces
             byte linkagetype = span[6];
             if (linkagetype == 0x01)
             {
-                Linkage bouquetlinkage = bouquetlinkages.Find(x => x.transportstreamid == transport_stream_id);
+                Linkage? bouquetlinkage = bouquetlinkages.Find(x => x.transportstreamid == transport_stream_id);
                 if (bouquetlinkage == null)
                 {
                     bouquetlinkage = new Linkage();
@@ -240,7 +242,7 @@ namespace Interfaces
             }
             if (linkagetype == 0x02)
             {
-                Linkage epglinkage = epglinkages.Find(x => x.transportstreamid == transport_stream_id);
+                Linkage? epglinkage = epglinkages.Find(x => x.transportstreamid == transport_stream_id);
                 if (epglinkage == null)
                 {
                     epglinkage = new Linkage();
@@ -252,7 +254,7 @@ namespace Interfaces
             }
             if (linkagetype == 0x04)
             {
-                Linkage silinkage = silinkages.Find(x => x.transportstreamid == transport_stream_id);
+                Linkage? silinkage = silinkages.Find(x => x.transportstreamid == transport_stream_id);
                 if (silinkage == null)
                 {
                     silinkage = new Linkage();
@@ -268,9 +270,37 @@ namespace Interfaces
         {
             log.Debug("Terrestrial delivery system NOT SUPPORTED");
         }
-        private void processcabledescriptor(Span<byte> span, Transponder tsp)
+        private void processcabledescriptor(Span<byte> v, Transponder tsp)
         {
-            log.Debug("Cable delivery system NOT SUPPORTED");
+            byte[] frequency = new byte[4];
+            Array.Copy(v.ToArray(), 0, frequency, 0, 4);
+            int fec_outer = v[5] & 0x0F;
+            int modtype = (v[6]);
+            byte[] symbol_rate = new byte[4];
+            Array.Copy(v.ToArray(), 7, symbol_rate, 0, 4);
+            int fec_inner = (symbol_rate[3] & 0x0f);
+            tsp.samplerate = Utils.Utils.bcdtoint(symbol_rate) / 100;
+            log.DebugFormat("Transport: Freq {0}, Symbolrate: {1}, Fec_inner: {2}, Fec_outer: {3}",
+                Utils.Utils.bcdtohex(frequency),
+                Utils.Utils.bcdtohex(symbol_rate, symbol_rate.Length * 2 - 1),
+                fec_inner,
+                fec_outer
+                );
+            tsp.frequency = Utils.Utils.bcdtoint(frequency) / 10;
+            tsp.frequencydecimal = Decimal.Divide(Utils.Utils.bcdtoint(frequency), 10);
+            tsp.polarisation = Transponder.e_polarisation.none;
+
+            switch (modtype)
+            {
+                case 0: tsp.mtype = Transponder.e_mtype.auto; break;
+                case 1: tsp.mtype = Transponder.e_mtype.qam16; break;
+                case 2: tsp.mtype = Transponder.e_mtype.qam32; break;
+                case 3: tsp.mtype = Transponder.e_mtype.qam64; break;
+                case 4: tsp.mtype = Transponder.e_mtype.qam128; break;
+                case 5: tsp.mtype = Transponder.e_mtype.qam256; break;
+                default: tsp.mtype = Transponder.e_mtype.auto; break;
+            }
+            tsp.dvbsystem = Transponder.e_dvbsystem.DVB_C;
         }
 
         private void processsatellitedescriptor(Span<byte> v, Transponder tsp)
@@ -354,6 +384,23 @@ namespace Interfaces
                 lenprocessed = lenprocessed + 3;
             }
             return items;
+        }
+        public void assign(List<Channel> channels)
+        {
+            foreach (Channel c in channels)
+            {
+                c.lcn = 99999;
+            }
+
+            int lcn = 1;
+            foreach (ServiceListItem sli in networkservices)
+            {
+                Channel? c = channels.Find(x => x.service_id == sli.service_id);
+                if (c != null)
+                {
+                    c.lcn = sli.lcn;
+                }
+            }
         }
 
     }

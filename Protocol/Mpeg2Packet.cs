@@ -22,6 +22,10 @@ namespace Sat2Ip
         public int headerlen { get; private set; }
         public byte[] payload { get; internal set; }
 
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
         public Mpeg2Packet(byte[] _buffer)
         {
             this.buffer = _buffer;
@@ -58,6 +62,13 @@ namespace Sat2Ip
             if (buffer[offset] == 0x47)
             {
                 transporterror = (buffer[offset + 1] & 0x80) >> 7;
+                if (transporterror == 1)
+                {
+                    log.Debug("TRANSPORT ERROR, IGNORING PACKET!!!");
+                    payloadlength = 0;
+                    adaptationlength = 0;
+                    return;
+                }
                 payloadstartindicator = (buffer[offset + 1] & 0x40) >> 6;
                 priority = (buffer[offset + 1] & 0x20) >> 5;
                 pid = Utils.Utils.toShort((byte)(buffer[offset + 1] & 0x1F), (buffer[offset + 2]));
@@ -75,6 +86,8 @@ namespace Sat2Ip
                     headerlen = 4;
                 }
                 offset += headerlen;
+                if (offset < 0 || offset > 188)
+                    log.Debug("Bad offset");
                 Array.Copy(buffer, offset, payload,0, (188 - offset));
                 payloadlength = 188 - offset;
             }
@@ -117,6 +130,11 @@ namespace Sat2Ip
                 {
                     //Utils.Utils.DumpBytes(v, v.Length);
                     int transport_private_data_length = v[offset];
+                    if (v.Length - offset < transport_private_data_length)
+                    {
+                        log.Debug("TRANSPORT PRIVATE DATA LENGTH TOO LONG");
+                        return 0;
+                    }
                     byte[] privatedata = new byte[transport_private_data_length];
                     for (int i = 0; i < transport_private_data_length; i++)
                     {

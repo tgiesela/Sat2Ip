@@ -1,6 +1,6 @@
 ﻿namespace Sat2IpGui
 {
-    partial class FrmFindChannels
+    partial class FrmFindChannelsDVBC
     {
         /// <summary>
         /// Required designer variable.
@@ -28,8 +28,8 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.cmbLNB = new System.Windows.Forms.ComboBox();
-            this.cmbTransponder = new System.Windows.Forms.ComboBox();
+            this.cmbProvider = new System.Windows.Forms.ComboBox();
+            this.cmbFrequency = new System.Windows.Forms.ComboBox();
             this.cbScanAll = new System.Windows.Forms.CheckBox();
             this.btnScan = new System.Windows.Forms.Button();
             this.txtTransponder = new System.Windows.Forms.TextBox();
@@ -38,32 +38,33 @@
             this.txtChannels = new System.Windows.Forms.TextBox();
             this.btnClose = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
-            this.cbFastscan = new System.Windows.Forms.CheckBox();
-            this.txtNetworkID = new System.Windows.Forms.TextBox();
+            this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
+            this.txtNetworkID = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
-            // cmbLNB
+            // cmbProvider
             // 
-            this.cmbLNB.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cmbLNB.FormattingEnabled = true;
-            this.cmbLNB.Location = new System.Drawing.Point(28, 25);
-            this.cmbLNB.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.cmbLNB.Name = "cmbLNB";
-            this.cmbLNB.Size = new System.Drawing.Size(200, 23);
-            this.cmbLNB.TabIndex = 0;
-            this.cmbLNB.SelectedValueChanged += new System.EventHandler(this.cmbLNB_SelectedValueChanged);
+            this.cmbProvider.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbProvider.FormattingEnabled = true;
+            this.cmbProvider.Location = new System.Drawing.Point(28, 25);
+            this.cmbProvider.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            this.cmbProvider.Name = "cmbProvider";
+            this.cmbProvider.Size = new System.Drawing.Size(200, 23);
+            this.cmbProvider.TabIndex = 0;
+            this.cmbProvider.SelectedIndexChanged += new System.EventHandler(this.cmbProvider_SelectedValueChanged);
+            this.cmbProvider.SelectedValueChanged += new System.EventHandler(this.cmbProvider_SelectedValueChanged);
             // 
-            // cmbTransponder
+            // cmbFrequency
             // 
-            this.cmbTransponder.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cmbTransponder.FormattingEnabled = true;
-            this.cmbTransponder.Location = new System.Drawing.Point(250, 25);
-            this.cmbTransponder.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.cmbTransponder.Name = "cmbTransponder";
-            this.cmbTransponder.Size = new System.Drawing.Size(196, 23);
-            this.cmbTransponder.TabIndex = 1;
-            this.cmbTransponder.SelectedIndexChanged += new System.EventHandler(this.cmbTransponder_SelectedIndexChanged);
+            this.cmbFrequency.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbFrequency.FormattingEnabled = true;
+            this.cmbFrequency.Location = new System.Drawing.Point(250, 25);
+            this.cmbFrequency.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            this.cmbFrequency.Name = "cmbFrequency";
+            this.cmbFrequency.Size = new System.Drawing.Size(196, 23);
+            this.cmbFrequency.TabIndex = 1;
+            this.cmbFrequency.SelectedIndexChanged += new System.EventHandler(this.cmbFrequency_SelectedIndexChanged);
             // 
             // cbScanAll
             // 
@@ -100,7 +101,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(23, 104);
+            this.label1.Location = new System.Drawing.Point(23, 108);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(59, 15);
@@ -110,7 +111,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(252, 104);
+            this.label2.Location = new System.Drawing.Point(252, 108);
             this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(94, 15);
@@ -149,44 +150,42 @@
             this.btnStop.UseVisualStyleBackColor = true;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
             // 
-            // cbFastscan
+            // label3
             // 
-            this.cbFastscan.AutoSize = true;
-            this.cbFastscan.Location = new System.Drawing.Point(357, 70);
-            this.cbFastscan.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.cbFastscan.Name = "cbFastscan";
-            this.cbFastscan.Size = new System.Drawing.Size(71, 19);
-            this.cbFastscan.TabIndex = 11;
-            this.cbFastscan.Text = "Fastscan";
-            this.cbFastscan.UseVisualStyleBackColor = true;
-            this.cbFastscan.CheckedChanged += new System.EventHandler(this.cbFastscan_CheckedChanged);
-            // 
-            // txtNetworkID
-            // 
-            this.txtNetworkID.Location = new System.Drawing.Point(94, 136);
-            this.txtNetworkID.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.txtNetworkID.Name = "txtNetworkID";
-            this.txtNetworkID.Size = new System.Drawing.Size(93, 23);
-            this.txtNetworkID.TabIndex = 17;
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(28, 9);
+            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(51, 15);
+            this.label3.TabIndex = 12;
+            this.label3.Text = "Provider";
             // 
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(23, 140);
+            this.label4.Location = new System.Drawing.Point(23, 144);
             this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(69, 15);
-            this.label4.TabIndex = 16;
+            this.label4.TabIndex = 14;
             this.label4.Text = "Network ID:";
             // 
-            // FrmFindChannels
+            // txtNetworkID
+            // 
+            this.txtNetworkID.Location = new System.Drawing.Point(94, 140);
+            this.txtNetworkID.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            this.txtNetworkID.Name = "txtNetworkID";
+            this.txtNetworkID.Size = new System.Drawing.Size(93, 23);
+            this.txtNetworkID.TabIndex = 15;
+            // 
+            // FrmFindChannelsDVBC
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(520, 222);
             this.Controls.Add(this.txtNetworkID);
             this.Controls.Add(this.label4);
-            this.Controls.Add(this.cbFastscan);
+            this.Controls.Add(this.label3);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.btnClose);
             this.Controls.Add(this.txtChannels);
@@ -195,10 +194,10 @@
             this.Controls.Add(this.txtTransponder);
             this.Controls.Add(this.btnScan);
             this.Controls.Add(this.cbScanAll);
-            this.Controls.Add(this.cmbTransponder);
-            this.Controls.Add(this.cmbLNB);
+            this.Controls.Add(this.cmbFrequency);
+            this.Controls.Add(this.cmbProvider);
             this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.Name = "FrmFindChannels";
+            this.Name = "FrmFindChannelsDVBC";
             this.Text = "FrmFindChannels";
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -207,8 +206,8 @@
 
         #endregion
 
-        private System.Windows.Forms.ComboBox cmbLNB;
-        private System.Windows.Forms.ComboBox cmbTransponder;
+        private System.Windows.Forms.ComboBox cmbProvider;
+        private System.Windows.Forms.ComboBox cmbFrequency;
         private System.Windows.Forms.CheckBox cbScanAll;
         private System.Windows.Forms.Button btnScan;
         private System.Windows.Forms.TextBox txtTransponder;
@@ -217,8 +216,8 @@
         private System.Windows.Forms.TextBox txtChannels;
         private System.Windows.Forms.Button btnClose;
         private System.Windows.Forms.Button btnStop;
-        private System.Windows.Forms.CheckBox cbFastscan;
-        private System.Windows.Forms.TextBox txtNetworkID;
+        private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.TextBox txtNetworkID;
     }
 }

@@ -1,12 +1,7 @@
-﻿using Interfaces;
-using Sat2Ip;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Sat2Ip;
+using Interfaces;
 
-namespace Sat2IpGui.SatUtils
+namespace Sat2ipUtils
 {
     [Serializable]
     public class ChannelFilter

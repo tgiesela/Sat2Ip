@@ -1,7 +1,5 @@
 ﻿using Sat2Ip;
-using Sat2IpGui.SatUtils;
-using System;
-using System.Collections.Generic;
+using Sat2ipUtils;
 
 namespace Interfaces
 {

@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static Interfaces.PAT;
 
 namespace Sat2Ip
 {
@@ -15,7 +14,7 @@ namespace Sat2Ip
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private int _programpid = -1;
-        private List<Sat2Ip.Stream> _pmt;
+        private List<Stream> _pmt;
         private bool _pmtpresent = false;
         private string m_providername = string.Empty;
         private string m_servicename = string.Empty;

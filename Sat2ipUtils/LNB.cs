@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using Sat2Ip;
-using System.Text.Json;
+﻿using System.Text.Json;
 using Interfaces;
+using Sat2Ip;
 
-namespace Sat2IpGui.SatUtils
+namespace Sat2ipUtils
 {
     public class LNB
     {
@@ -23,13 +20,16 @@ namespace Sat2IpGui.SatUtils
         public int diseqcposition { get { return m_diseqcposition;} set { m_diseqcposition = value; } }
         public string satellitename { get; set; }
 
+        private Config m_config;
+        private string m_serverfolder;
+        private string m_dvbtype;
         public LNB(int lnb):this()
         {
             diseqcposition = lnb;
-            //load();
         }
         public LNB()
         {
+            m_config = new();
             networks = new List<Network>();
             channels = new List<Channel>();
             bouquets = new List<Bouquet>();
@@ -43,18 +43,19 @@ namespace Sat2IpGui.SatUtils
         }
         public void load()
         {
-            m_lnbFilename = String.Format(Utils.Utils.getStorageFolder() + "Transponderlist{0}.json", diseqcposition);
+            m_config.load();
+            m_serverfolder = m_config.configitems.IpAddressDevice;
+            m_dvbtype = m_config.configitems.dvbtype;
+            m_lnbFilename = String.Format(getStorageFolder() + "Transponderlist{0}.json", diseqcposition);
             if (File.Exists(m_lnbFilename))
             {
                 String transponders = File.ReadAllText(m_lnbFilename);
                 m_transponders = JsonSerializer.Deserialize<List<Transponder>>(transponders);
             }
-            else
-            {
-                m_transponders = new List<Transponder>();
-            }
+            if (m_transponders != null)
+                m_transponders = new();
 
-            m_lnbFilename = String.Format(Utils.Utils.getStorageFolder() + "Channellist{0}.json", diseqcposition);
+            m_lnbFilename = String.Format(getStorageFolder() + "Channellist{0}.json", diseqcposition);
             if (File.Exists(m_lnbFilename))
             {
                 String channels = File.ReadAllText(m_lnbFilename);
@@ -65,7 +66,7 @@ namespace Sat2IpGui.SatUtils
                 m_channels = new List<Channel>();
             }
 
-            m_lnbFilename = String.Format(Utils.Utils.getStorageFolder() + "Networklist{0}.json", diseqcposition);
+            m_lnbFilename = String.Format(getStorageFolder() + "Networklist{0}.json", diseqcposition);
             if (File.Exists(m_lnbFilename))
             {
                 String networks = File.ReadAllText(m_lnbFilename);
@@ -76,7 +77,7 @@ namespace Sat2IpGui.SatUtils
                 m_networks = new List<Network>();
             }
 
-            m_lnbFilename = String.Format(Utils.Utils.getStorageFolder() + "Bouquetlist{0}.json", diseqcposition);
+            m_lnbFilename = String.Format(getStorageFolder() + "Bouquetlist{0}.json", diseqcposition);
             if (File.Exists(m_lnbFilename))
             {
                 String bouquets = File.ReadAllText(m_lnbFilename);
@@ -87,21 +88,29 @@ namespace Sat2IpGui.SatUtils
                 m_bouquets = new List<Bouquet>();
             }
         }
+        public string getStorageFolder()
+        {
+            return Utils.Utils.getStorageFolderForDVBType(m_config.configitems.IpAddressDevice,m_config.configitems.dvbtype);
+        }
         public void save()
         {
-            m_lnbFilename = String.Format(Utils.Utils.getStorageFolder() + "Transponderlist{0}.json", diseqcposition);
+            m_config.load();
+            m_serverfolder = m_config.configitems.IpAddressDevice;
+            m_dvbtype = m_config.configitems.dvbtype;
+
+            m_lnbFilename = String.Format(getStorageFolder() + "Transponderlist{0}.json", diseqcposition);
             String transponders = JsonSerializer.Serialize(m_transponders);
             File.WriteAllText(m_lnbFilename, transponders);
 
-            m_lnbFilename = String.Format(Utils.Utils.getStorageFolder() + "Channellist{0}.json", diseqcposition);
+            m_lnbFilename = String.Format(getStorageFolder() + "Channellist{0}.json", diseqcposition);
             String channels = JsonSerializer.Serialize(m_channels);
             File.WriteAllText(m_lnbFilename, channels);
 
-            m_lnbFilename = String.Format(Utils.Utils.getStorageFolder() + "Networklist{0}.json", diseqcposition);
+            m_lnbFilename = String.Format(getStorageFolder() + "Networklist{0}.json", diseqcposition);
             String networks = JsonSerializer.Serialize(m_networks);
             File.WriteAllText(m_lnbFilename, networks);
 
-            m_lnbFilename = String.Format(Utils.Utils.getStorageFolder() + "Bouquetlist{0}.json", diseqcposition);
+            m_lnbFilename = String.Format(getStorageFolder() + "Bouquetlist{0}.json", diseqcposition);
             String bouquets = JsonSerializer.Serialize(m_bouquets);
             File.WriteAllText(m_lnbFilename, bouquets);
         }

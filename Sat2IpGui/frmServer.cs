@@ -8,41 +8,50 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Sat2IpGui.SatUtils;
+using Sat2ipUtils;
 using UPNPLib;
 namespace Sat2IpGui
 {
     public partial class frmServer : Form
     {
-        private UPnP _devices;
-        private UPnPDevice _selectedDevice;
+        private UPnP _servers;
+        private Sat2ipserver _selectedServer;
         public frmServer()
         {
             InitializeComponent();
+            btnOk.Enabled = false;
         }
 
-        public UPnPDevice SelectedDevice { get => _selectedDevice; set => _selectedDevice = value; }
+        public Sat2ipserver SelectedDevice { get => _selectedServer; set => _selectedServer = value; }
+        public List<Sat2ipserver> Sat2ipservers { get; set; }
 
         private void BtnFindServer_Click(object sender, EventArgs e)
         {
             lbServers.Items.Clear();
-            _devices = new UPnP();
-            foreach (UPnPDevice device in _devices.Devices)
+            btnOk.Enabled = false;
+            _servers = new UPnP();
+            foreach (Sat2ipserver server in _servers.Sat2ipServers)
             {
-                lbServers.Items.Add(device.FriendlyName);
+                lbServers.Items.Add(server.FriendlyName);
+            }
+            if (_servers.Sat2ipServers.Count > 0)
+            {
+                Sat2ipservers = _servers.Sat2ipServers;
             }
         }
         private void LbServers_Click(object sender, EventArgs e)
         {
-            if (_devices == null)
+            if (_servers == null)
             {
                 return;
             }
-            if (_devices.Devices.Count != 0)
+            btnOk.Enabled = true;
+            if (_servers.Sat2ipServers.Count != 0)
             {
                 int inx = lbServers.SelectedIndex;
                 if (inx >= 0 && inx < lbServers.Items.Count)
                 {
-                    SelectedDevice = _devices.Devices[inx];
+                    SelectedDevice = _servers.Sat2ipServers[inx];
                     txtServer.Text = SelectedDevice.PresentationURL;
                     txtDescription.Text = SelectedDevice.Description;
                     txtFriendlyName.Text=  SelectedDevice.FriendlyName;

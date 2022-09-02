@@ -29,7 +29,7 @@ namespace Interfaces
         private section[] msgsections;
         private bool _complete;
         public bool complete { get { return _complete; } set { _complete = value; } }
-        internal DVBBase()
+        public DVBBase()
         {
             _complete = false;
         }
@@ -80,7 +80,7 @@ namespace Interfaces
             this._complete = true;
         }
         abstract protected void processsection(Span<byte> span);
-        internal static string getStringFromDescriptor(byte[] descriptor, int offset, ref int lenused)
+        public static string getStringFromDescriptor(byte[] descriptor, int offset, ref int lenused)
         {
             if (descriptor.Length <= 0)  return null;
             int strlen = descriptor[offset];

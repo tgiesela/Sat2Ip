@@ -113,6 +113,7 @@ namespace Sat2Ip
             //reader = null;
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         public async Task<List<Channel>> scan(Transponder transponder)
         {
             patreceived = false;
@@ -446,7 +447,7 @@ namespace Sat2Ip
                 {
                     processPAT(payload.getDatapart(0, payload.expectedlength));
                 }
-                else if (tableid == 0x40) /* We do not use 0x41 which is another network */
+                else if (tableid == 0x40 || tableid == 0x41) /* We do not use 0x41 which is another network */
                 {
                     processNIT(payload.getDatapart(0, payload.expectedlength));
                 }
@@ -481,7 +482,7 @@ namespace Sat2Ip
                 {
                     case 0x02: processPMT(payload.getDatapart(0, payload.expectedlength), payload.payloadpid); break;
                     case 0x40: processNIT(payload.getDatapart(0, payload.expectedlength)); break;
-                    case 0x41: /* We do not use 0x41 which is NIT of another network */ break;
+                    case 0x41: processNIT(payload.getDatapart(0, payload.expectedlength)); break;
                     case 0x72: /* Stuffing table */ break;
                     case 0xbc: processFSTNetwork(payload.getDatapart(0, payload.expectedlength)); break;
                     case 0xbd: processFSTLCN(payload.getDatapart(0, payload.expectedlength)); break;
@@ -668,18 +669,34 @@ namespace Sat2Ip
                 {
                     currentnetwork = false;
                 }
+                netw.currentnetwork = currentnetwork;
                 log.Debug("NIT section received");
                 netw.addsection(hdr, span.Slice(8));
-                if (netw.complete && currentnetwork)
+                if (netw.complete )
                 {
-                    log.DebugFormat("All sections of current NIT received");
-                    Network existing_network = m_networks.Find(x => x.networkid == netw.networkid);
-                    if (existing_network == null)
-                        m_networks.Add(netw);
-                    else
+                    if (currentnetwork)
                     {
-                        m_networks.Remove(existing_network);
-                        m_networks.Add(netw);
+                        log.DebugFormat("All sections of current NIT received");
+                        Network existing_network = m_networks.Find(x => x.networkid == netw.networkid);
+                        if (existing_network == null)
+                            m_networks.Add(netw);
+                        else
+                        {
+                            m_networks.Remove(existing_network);
+                            m_networks.Add(netw);
+                        }
+                    }
+                    else 
+                    {
+                        log.DebugFormat("All sections of other NIT received");
+                        Network existing_network = m_networks.Find(x => x.networkid == netw.networkid);
+                        if (existing_network == null)
+                            m_networks.Add(netw);
+                        else
+                        {
+                            m_networks.Remove(existing_network);
+                            m_networks.Add(netw);
+                        }
                     }
                     OnNITReceived();
                 }

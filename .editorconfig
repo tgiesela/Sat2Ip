@@ -2,3 +2,6 @@
 
 # CS0169: The field 'OscamserverNew.m_ouputpackets' is never used
 dotnet_diagnostic.CS0169.severity = none
+
+# CS8601: Possible null reference assignment.
+dotnet_diagnostic.CS8601.severity = silent

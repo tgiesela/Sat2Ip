@@ -1,4 +1,5 @@
 ﻿using Sat2IpGui.SatUtils;
+using Sat2ipUtils;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -17,21 +18,30 @@ namespace Sat2IpGui
 {
     public partial class FrmConfig : Form
     {
-        List<SatUtils.SatelliteInfo> listinfo;
-        private SatUtils.SatelliteReader satreader;
         private Config config;
         private CheckBox[] checkboxes;
         private ComboBox[] comboboxes;
+        private SatInfo m_satinfo = new();
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         public FrmConfig()
         {
             InitializeComponent();
             checkboxes = new CheckBox[] { cbLNB1, cbLNB2, cbLNB3, cbLNB4 };
             comboboxes = new ComboBox[] { cmbSatellites1, cmbSatellites2, cmbSatellites3, cmbSatellites4 };
 
-            satreader = new SatUtils.SatelliteReader();
-            listinfo = satreader.read(Utils.Utils.getStorageFolder() + @"satellites.csv");
             config = new Config();
             config.load();
+            if (config.configitems.dvbtype == "DVBC")
+            {
+                rbDVBC.Checked = true;
+                rbDVBS.Checked = false;
+            }
+            else
+            {
+                rbDVBC.Checked = false;
+                rbDVBS.Checked = true;
+            }
 
             for (int i = 0; i < comboboxes.Length; i++)
             {
@@ -45,7 +55,7 @@ namespace Sat2IpGui
                     {
                         checkboxes[i].Checked = true;
                         comboboxes[i].Enabled = true;
-                        comboboxes[i].SelectedItem = config.configitems.lnbs[i].satellitename;
+                        comboboxes[i].SelectedItem = m_satinfo.findSatelliteName(config.configitems.lnbs[i].satellitename);
                     }
                     else
                     {
@@ -66,15 +76,14 @@ namespace Sat2IpGui
 
         private void LoadSatellites(ComboBox cmbSatellites)
         {
-            foreach (SatUtils.SatelliteInfo info in listinfo)
-            {
-                cmbSatellites.Items.Add(satreader.getSatelliteName(info));
-            }
+            cmbSatellites.DataSource = m_satinfo.datasourceSatellites();
+            cmbSatellites.DisplayMember = "displayname";
+            cmbSatellites.ValueMember = "satellitename";
         }
 
-        private async void BtnOK_Click(object sender, EventArgs e)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
+        private void BtnOK_Click(object sender, EventArgs e)
         {
-            Task task;
             for (int i = 0; i < checkboxes.Length; i++)
             {
                 if (checkboxes[i].Checked)
@@ -85,8 +94,6 @@ namespace Sat2IpGui
                     }
                     config.configitems.lnbs[i].satellitename = comboboxes[i].Text;
                     config.configitems.lnbs[i].diseqcposition = i + 1;
-                    task = DownloadFrequenciesAsync(cmbSatellites1.SelectedIndex);
-                    await task;
                 }
                 else
                 {
@@ -99,25 +106,11 @@ namespace Sat2IpGui
             config.configitems.OscamPort = txtOscamport.Text;
             config.configitems.FixedTuner = cbFixedTuner.Checked;
             config.configitems.TunerNumber = numTuner.Value;
+            if (rbDVBC.Checked)
+                config.configitems.dvbtype = "DVBC";
+            else
+                config.configitems.dvbtype = "DVBS";
             config.save();
-        }
-
-        private async Task DownloadFrequenciesAsync(int selectedIndex)
-        {
-            SatUtils.SatelliteInfo info = listinfo[selectedIndex];
-            string filename = satreader.getTransponderIniFilename(info);
-
-            var client = new HttpClient();
-            var response = await client.GetAsync(info.DownloadLink);
-
-            using (var stream = await response.Content.ReadAsStreamAsync())
-            {
-                var fileInfo = new FileInfo(filename);
-                using (var fileStream = fileInfo.OpenWrite())
-                {
-                    await stream.CopyToAsync(fileStream);
-                }
-            }
         }
 
         private void cbLNB1_CheckedChanged(object sender, EventArgs e)
@@ -176,6 +169,18 @@ namespace Sat2IpGui
             else
             {
                 numTuner.Enabled = false;
+            }
+        }
+
+        private void rbDVBS_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rbDVBS.Checked)
+            {
+                gbLNB.Enabled = true;
+            }
+            else
+            {
+                gbLNB.Enabled = false;
             }
         }
     }

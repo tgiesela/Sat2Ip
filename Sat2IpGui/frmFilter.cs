@@ -1,6 +1,7 @@
 ﻿using Interfaces;
 using Sat2Ip;
 using Sat2IpGui.SatUtils;
+using Sat2ipUtils;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -15,7 +16,7 @@ namespace Sat2IpGui
 {
     public partial class frmFilter : Form
     {
-        private Config config = new Config();
+        private Sat2ipUtils.Config config = new Sat2ipUtils.Config();
         private List<Bouquet> m_bouquets = new List<Bouquet>();
         private List<Network> m_networks = new List<Network>();
         private List<Transponder> m_transponders = new List<Transponder>();

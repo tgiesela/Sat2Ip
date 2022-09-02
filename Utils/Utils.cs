@@ -78,7 +78,21 @@ namespace Utils
         public static string getStorageFolder()
         {
             String allusersprofile = Environment.GetEnvironmentVariable("ALLUSERSPROFILE");
-            String storagefolder = allusersprofile + "\\" + "Sat2IpGui\\";
+            String storagefolder = allusersprofile + "\\Sat2IpGui\\";
+            Directory.CreateDirectory(storagefolder);
+            return storagefolder;
+        }
+        public static string getStorageFolderForServer(string servername)
+        {
+            String allusersprofile = Environment.GetEnvironmentVariable("ALLUSERSPROFILE");
+            String storagefolder = allusersprofile + "\\Sat2IpGui\\" + servername + "\\";
+            Directory.CreateDirectory(storagefolder);
+            return storagefolder;
+        }
+        public static string getStorageFolderForDVBType(string servername, string dvbtype)
+        {
+            String allusersprofile = Environment.GetEnvironmentVariable("ALLUSERSPROFILE");
+            String storagefolder = allusersprofile + "\\" + "Sat2IpGui\\" + servername + "\\" + dvbtype + "\\";
             Directory.CreateDirectory(storagefolder);
             return storagefolder;
         }

@@ -8,42 +8,45 @@ using Sat2Ip;
 using Microsoft.Extensions.Logging;
 using Interfaces;
 using Sat2IpGui.SatUtils;
+using Sat2ipUtils;
 
 namespace Sat2IpGui
 {
 
+    /*
+     * git clone https://git.linuxtv.org/dtv-scan-tables
+     *  See folder: /dtv-scan-tables/dvb-c/
+     * 
+     */
     public partial class FrmFindChannels : Form
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private SatUtils.LNB m_LNB;
-        private SatUtils.SatelliteReader reader;
-        private SatUtils.SatelliteInfo info;
-        private string iniFilename;
-        private SatUtils.IniFile inifile;
+        private LNB m_LNB;
+        private LNBInfo m_lnbinfo = new();
+        private SatInfo m_satinfo = new();
+
         private Scanner scanner;
         private bool scanning = false;
-        private Config config = new Config();
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
+        private Config config = new();
         private List<Transponder> m_transponders;
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         public FrmFindChannels()
         {
             InitializeComponent();
             config.load();
-            for (int i = 0; i < config.configitems.lnbs.Length; i++)
-            {
-                if (config.configitems.lnbs[i] != null)
-                    cmbLNB.Items.Add(config.configitems.lnbs[i].satellitename);
-            }
 
+            m_transponders = new List<Transponder>();
+            cmbLNB.DataSource = m_lnbinfo.datasourceLNBs();
+            cmbLNB.DisplayMember = "satellitename";
+            cmbLNB.ValueMember = "diseqcposition";
             cmbTransponder.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbLNB.DropDownStyle = ComboBoxStyle.DropDownList;
 
-            reader = new SatUtils.SatelliteReader();
-            reader.read(@"Satellites.csv");
             btnScan.Enabled = false;
-            m_transponders = new List<Transponder>();
         }
 
         private void cbScanAll_CheckedChanged(object sender, EventArgs e)
@@ -56,48 +59,27 @@ namespace Sat2IpGui
         private void cmbLNB_SelectedValueChanged(object sender, EventArgs e)
         {
             loadTransponders(null);
-            populateCmbTransponders();
         }
         private void loadTransponders(FastScanLocation location)
         {
-            m_transponders.Clear();
-            if (cbUseNit.Checked)
-                loadTranspondersNIT();
-            else
-                loadTranspondersFromIniFile(location);
+            loadTranspondersFromIniFile(location);
         }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private void loadTranspondersFromIniFile(FastScanLocation location)
         {
             if (location != null)
             {
-                info = reader.findSatelliteOrbit(location.position);
                 m_LNB = new LNB(location.diseqcposition);
-                m_LNB.load();
             }
             else
             {
                 m_LNB = getLNBFromCombobox();
-                info = reader.findSatelliteName(cmbLNB.SelectedItem.ToString());
             }
-            iniFilename = reader.getTransponderIniFilename(info);
-            inifile = new SatUtils.IniFile(System.IO.Path.GetFullPath(iniFilename));
-            string[] sections = inifile.ReadSections();
-            m_transponders.Clear();
-            if (sections.Contains<string>("DVB") && sections.Contains<string>("SATTYPE"))
-            {
-                string nroftransponders = inifile.ReadValue("DVB", "0");
-                for (int i = 1; i <= int.Parse(nroftransponders); i++)
-                {
-                    string line = inifile.ReadValue("DVB", i.ToString());
-                    Transponder tsp = extractInfoFromTransponder(line);
-                    m_transponders.Add(tsp);
-                }
-            }
-            else
-            {
-                MessageBox.Show("Ini file for satellite not valid: " + iniFilename);
-                inifile = null;
-            }
+            m_LNB.load();
+            cmbTransponder.DataSource = m_satinfo.datasourceTransponders(m_LNB);
+            cmbTransponder.DisplayMember = "displayName";
+            cmbTransponder.ValueMember = "frequency";
         }
         private void loadTranspondersNIT()
         {
@@ -116,33 +98,15 @@ namespace Sat2IpGui
                 }
             }
         }
-        private void populateCmbTransponders()
-        {
-            cmbTransponder.Items.Clear();
-            m_transponders = m_transponders.OrderBy(x => x.frequency).ToList();
-            foreach (Transponder t in m_transponders)
-            {
-                string freq = t.frequencydecimal.Value.ToString(System.Globalization.CultureInfo.CreateSpecificCulture("en-us"));
-                string line = string.Format("{0},{1},{2},{3},{4},{5}", freq, (char)t.polarisation, t.samplerate, (int)t.fec, t.dvbsystem, t.mtype);
-                cmbTransponder.Items.Add(line);
-            }
-        }
         private LNB getLNBFromCombobox()
         {
-            LNB lnb = null;
-            for (int i = 0; i < config.configitems.lnbs.Length; i++)
-            {
-                if (config.configitems.lnbs[i].satellitename == cmbLNB.SelectedItem.ToString())
-                {
-                    lnb = config.configitems.lnbs[i];
-                    lnb.load();
-                    break;
-                }
-            }
-            if (lnb == null)
-                MessageBox.Show("Could not locate LNB from combobox");
+            if (cmbLNB.SelectedIndex == -1)
+                throw new Exception("LNB/satellite Not selected");
+            LNB lnb = cmbLNB.SelectedItem as LNB;
             return lnb;
         }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private Transponder getTransponderForFastscan(FastScanLocation location)
         {
             LNB lnb;
@@ -154,27 +118,14 @@ namespace Sat2IpGui
                     if (lnb.orbit() == location.position)
                     {
                         lnb.load();
-                        if (cbUseNit.Checked)
+                        loadTransponders(location);
+                        foreach (Transponder t in m_transponders)
                         {
-                            foreach (Transponder t in lnb.transponders)
+                            if (t.frequency == location.frequency / 1000)
                             {
-                                if (t.frequency == location.frequency)
-                                {
-                                    return t;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            loadTransponders(location);
-                            foreach (Transponder t in m_transponders)
-                            {
-                                if (t.frequency == location.frequency / 1000)
-                                {
-                                    location.diseqcposition = lnb.diseqcposition;
-                                    t.diseqcposition = lnb.diseqcposition;
-                                    return t;
-                                }
+                                location.diseqcposition = lnb.diseqcposition;
+                                t.diseqcposition = lnb.diseqcposition;
+                                return t;
                             }
                         }
                     }
@@ -182,29 +133,8 @@ namespace Sat2IpGui
             }
             return null;
         }
-        private Transponder extractInfoFromTransponder(string transponder)
-        {
-            Transponder tsp = new Transponder();
-            char[] delimiterChars = { ' ', ',' };
-            string[] parts = transponder.Split(delimiterChars);
-            decimal frequencydecimal = decimal.Parse(parts[0], System.Globalization.CultureInfo.CreateSpecificCulture("en-us"));
-            int frequency = (int)frequencydecimal;
-            string polarisation = parts[1];
-            int samplerate = int.Parse(parts[2]);
-            string errorcorrections = parts[3];
-            string dvbtype = parts[4];
-            string mtype = parts[5];
-            tsp.diseqcposition = m_LNB.diseqcposition;
-            tsp.frequency = (int)frequencydecimal;
-            tsp.frequencydecimal = frequencydecimal;
-            tsp.samplerate = samplerate;
-            tsp.polarisationFromString(polarisation);
-            tsp.dvbsystemFromString(dvbtype);
-            tsp.fecFromString(errorcorrections);
-            tsp.mtypeFromString(mtype);
-            return tsp;
-        }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private async void btnScan_ClickAsync(object sender, EventArgs e)
         {
             btnScan.Enabled = false;
@@ -259,7 +189,7 @@ namespace Sat2IpGui
                 int channelcount = 0;
                 for (int i = 0; i < cmbTransponder.Items.Count && scanning; i++)
                 {
-                    Transponder tsp = extractInfoFromTransponder(cmbTransponder.Items[i].ToString());
+                    Transponder tsp = cmbTransponder.Items[i] as Transponder;
                     txtTransponder.Text = tsp.frequency.ToString();
                     List<Channel> lChannels = new List<Channel>();
                     await scanChannelsAsync(scanner, lChannels, tsp);
@@ -270,7 +200,12 @@ namespace Sat2IpGui
                     {
                         m_LNB.networks = scanner.networks;
                         m_LNB.bouquets = scanner.bouquets;
-                        m_LNB.transponders = getTranspondersFromNetwork(m_LNB.networks);
+                        m_satinfo.addTranspondersFromNit(scanner.networks, txtNetworkID.Text);
+                        cmbTransponder.DataSource = m_satinfo.updateDatasourceTransponders();
+                        cmbTransponder.DisplayMember = "displayName";
+                        cmbTransponder.ValueMember = "frequency";
+                        cmbTransponder.SelectedItem = tsp;
+                        m_LNB.transponders = m_satinfo.m_transponders;
                         m_LNB.setTransponder(tsp, lChannels);
                     }
                 }
@@ -280,15 +215,19 @@ namespace Sat2IpGui
                 if (cmbLNB.SelectedIndex >= 0 && cmbTransponder.SelectedIndex >= 0)
                 {
                     List<Channel> lChannels = new List<Channel>();
-                    string transponder = cmbTransponder.SelectedItem.ToString();
-                    Transponder tsp = extractInfoFromTransponder(transponder);
+                    Transponder tsp = cmbTransponder.SelectedItem as Transponder;
                     await scanChannelsAsync(scanner, lChannels, tsp);
     
                     if (lChannels.Count > 0)
                     {
                         m_LNB.networks = scanner.networks;
                         m_LNB.bouquets = scanner.bouquets;
-                        m_LNB.transponders = getTranspondersFromNetwork(m_LNB.networks);
+                        m_satinfo.addTranspondersFromNit(scanner.networks, txtNetworkID.Text);
+                        cmbTransponder.DataSource = m_satinfo.updateDatasourceTransponders();
+                        cmbTransponder.DisplayMember = "displayName";
+                        cmbTransponder.ValueMember = "frequency";
+                        cmbTransponder.SelectedItem = tsp;
+                        m_LNB.transponders = m_satinfo.m_transponders;
                         m_LNB.setTransponder(tsp, lChannels);
                     }
                 }
@@ -364,6 +303,8 @@ namespace Sat2IpGui
             btnClose.Enabled = true;
             btnStop.Enabled = false;
         }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private void printlinkagedetails(Linkage l)
         {
             List<Network> networks = scanner.networks;
@@ -477,7 +418,6 @@ namespace Sat2IpGui
         private void cbUseNit_CheckedChanged(object sender, EventArgs e)
         {
             loadTransponders(null);
-            populateCmbTransponders();
         }
         private void btnStop_Click(object sender, EventArgs e)
         {

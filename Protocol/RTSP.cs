@@ -57,7 +57,8 @@ namespace Sat2Ip
         {
             Destination = uri.Host;
             commandOptions();
-            commandDescribe();
+            if (_describesupported)
+                commandDescribe();
         }
         public int getFreeTuner()
         {
@@ -93,7 +94,7 @@ namespace Sat2Ip
                     String[] keywords = options.Split(',');
                     foreach (String keyword in keywords)
                     {
-                        switch (keyword)
+                        switch (keyword.Trim())
                         {
                             case "SETUP":
                                 _setupsupported = true;
@@ -260,8 +261,15 @@ namespace Sat2Ip
                         parts = line.Substring(2).Split(' ');
                         if (parts[0] == "SatIPServer:1")
                         {
-                            decimal dectuners = Convert.ToDecimal(parts[1]);
-                            _nroftuners = (int)dectuners;
+                            string[] tunernrs = parts[1].Split(',');
+                            decimal dvbstuners = Convert.ToDecimal(tunernrs[0]);
+                            decimal dvbttuners = 0;
+                            decimal dvbctuners = 0;
+                            if (tunernrs.Length > 1)
+                                dvbttuners = Convert.ToDecimal(tunernrs[1]);
+                            if (tunernrs.Length > 2)
+                                dvbctuners = Convert.ToDecimal(tunernrs[2]);
+                            _nroftuners = (int)(dvbstuners+dvbttuners+dvbctuners);
                             vs = new videosection[_nroftuners];
                         }
                         break;

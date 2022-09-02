@@ -13,19 +13,22 @@ using System.Diagnostics;
 using Sat2IpGui.SatUtils;
 using Interfaces;
 using System.Threading.Tasks;
+using Sat2ipUtils;
 
 namespace Sat2IpGui
 {
     public partial class frmMain : Form
     {
-        private UPnPDevice m_device;
+        private Sat2ipserver m_device;
         private Channel m_selectedchannel;
         private ListBoxItem m_selecteditem;
         private RTSP rtsp;
         private Descrambler.Descrambler descrambler;
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private List<Channel> channels = new();
         private Process VLC;
-        private Config config = new Config();
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
+        private Config config = new();
         private List<Channel> m_unfilteredchannels;
         private ChannelFilter m_cf;
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
@@ -39,6 +42,8 @@ namespace Sat2IpGui
                 return textToDisplay;
             }
         }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         public frmMain()
         {
             InitializeComponent();
@@ -48,9 +53,10 @@ namespace Sat2IpGui
             LoadChannels();
             UriBuilder uribld = new UriBuilder();
             uribld.Scheme = "rtp";
-            if (config.configitems.IpAddressDevice == null)
+            if (config.configitems.IpAddressDevice == null || config.configitems.sat2ipdevices == null)
             {
                 openServerConfig();
+                config.load();
             }
             uribld.Host = config.configitems.IpAddressDevice;
             uribld.Port = int.Parse(config.configitems.PortDevice);
@@ -64,7 +70,9 @@ namespace Sat2IpGui
             VLC.StartInfo.FileName = myVlcControl.VlcLibDirectory.FullName + "\\vlc.exe";
             VLC.StartInfo.Arguments = "-vvv rtp://127.0.0.1:40002";
         }
-        private void loadChannelsFromTransponder(SatUtils.LNB lnb)
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
+        private void loadChannelsFromTransponder(LNB lnb)
         {
             if (lnb == null)
                 return;
@@ -190,11 +198,16 @@ namespace Sat2IpGui
         private void ServerToolStripMenuItem_Click(object sender, EventArgs e)
         {
             openServerConfig();
+            config.load();
+            LoadChannels();
         }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private void openServerConfig()
         {
             frmServer server = new frmServer();
             DialogResult result = server.ShowDialog();
+            config.configitems.sat2ipdevices = server.Sat2ipservers.ToArray();
             if (result == DialogResult.OK)
             {
                 m_device = server.SelectedDevice;
@@ -202,20 +215,30 @@ namespace Sat2IpGui
                 config.configitems.IpAddressDevice = ip.Host;
                 config.configitems.PortDevice = ip.Port.ToString();
                 config.save();
+                config.load();
+                LoadChannels();
             }
 
         }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private void satelliteSetupToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            FrmConfig config = new FrmConfig();
-            DialogResult result = config.ShowDialog();
+            FrmConfig frmconfig = new FrmConfig();
+            DialogResult result = frmconfig.ShowDialog();
             if (result == DialogResult.OK)
             {
+                config.load();
+                LoadChannels();
             }
         }
         private void findChannelsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            FrmFindChannels findchannels = new FrmFindChannels();
+            Form findchannels;
+            if (config.configitems.dvbtype.Equals("DVBS"))
+                findchannels = new FrmFindChannels();
+            else
+                findchannels = new FrmFindChannelsDVBC();
             DialogResult result = findchannels.ShowDialog();
             if (result == DialogResult.OK)
             {
@@ -296,6 +319,8 @@ namespace Sat2IpGui
                 assignChannelNumbers();
             }
         }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private void assignChannelNumbers()
         {
             config.load();
@@ -316,10 +341,24 @@ namespace Sat2IpGui
                     }
                     else
                     {
-                        channels = channels.OrderBy(c => c.Servicename).ToList();
-                        foreach (Channel c in channels)
+                        if (config.configitems.dvbtype.Equals("DVBC"))
                         {
-                            c.lcn = 0;
+                            LNB lnb = new LNB(1);
+                            lnb.load();
+                            Network network = lnb.networks.Find(x => x.networkid == config.configitems.networkid);
+                            if (network != null)
+                            {
+                                network.assign(channels);
+                                channels = channels.OrderBy(c => c.lcn).ToList();
+                            }
+                        }
+                        else
+                        {
+                            foreach (Channel c in channels)
+                            {
+                                c.lcn = 0;
+                            }
+                            channels = channels.OrderBy(c => c.Servicename).ToList();
                         }
                     }
                 }
