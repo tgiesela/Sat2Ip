@@ -51,26 +51,41 @@ namespace Sat2IpGui
             m_cf = config.configitems.channelFilter;
 
             LoadChannels();
-            UriBuilder uribld = new UriBuilder();
-            uribld.Scheme = "rtp";
             if (config.configitems.IpAddressDevice == null || config.configitems.sat2ipdevices == null)
             {
                 openServerConfig();
                 config.load();
             }
-            uribld.Host = config.configitems.IpAddressDevice;
-            uribld.Port = int.Parse(config.configitems.PortDevice);
-            rtsp = new RTSP(uribld.Uri);
-            if (config.configitems.FixedTuner)
-            {
-                // rtsp.frontend = rtsp.getFreeTuner();
-                rtsp.frontend = (int)config.configitems.TunerNumber;
-            }
+            setupRTSP();
             VLC = new System.Diagnostics.Process();
             VLC.StartInfo.FileName = myVlcControl.VlcLibDirectory.FullName + "\\vlc.exe";
             VLC.StartInfo.Arguments = "-vvv rtp://127.0.0.1:40002";
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
+        private bool setupRTSP()
+        {
+            try
+            {
+                UriBuilder uribld = new UriBuilder();
+                uribld.Scheme = "rtp";
+                uribld.Host = config.configitems.IpAddressDevice;
+                uribld.Port = int.Parse(config.configitems.PortDevice);
+                rtsp = new RTSP(uribld.Uri);
+                if (config.configitems.FixedTuner)
+                {
+                    // rtsp.frontend = rtsp.getFreeTuner();
+                    rtsp.frontend = (int)config.configitems.TunerNumber;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                rtsp = null;
+                return false;
+            }
+            return true;
+        }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private void loadChannelsFromTransponder(LNB lnb)
         {
@@ -130,6 +145,14 @@ namespace Sat2IpGui
             int inx = lbChannels.SelectedIndex;
             if (inx < 0)
                 return;
+            if (rtsp == null)
+            {
+                if (setupRTSP() == false)
+                {
+                    log.Debug("Cannot connect to remote server");
+                    return;
+                }
+            }
             if (inx < lbChannels.Items.Count)
             {
                 ListBoxItem item = (ListBoxItem)lbChannels.Items[inx];

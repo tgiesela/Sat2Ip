@@ -60,6 +60,7 @@ namespace ClientSockets
             {
                 log.Debug(String.Format("Socket error {0}", e.Message));
                 _sender = null;
+                throw e;
             }
             if (_sender != null)
             {
@@ -110,6 +111,7 @@ namespace ClientSockets
         {
             try
             {
+                if (_sender == null) return "";
                 int x = _sender.Receive(_receivebuffer);
                 if (x == 0)
                 {

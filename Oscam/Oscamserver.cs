@@ -480,7 +480,7 @@ namespace Oscam
                             int tablelen = packet.expectedlength;
                             if (testlikeoscam(packet.data, offset, tablelen + 1, flt)) { 
                                 log.Debug(String.Format("Filter matched, starting from offset: {0}, tablelength: {1}, pid: {2}, filternr: {3}", offset, tablelen+2, packet.payloadpid, flt.Filternr));
-                                sendFilterdata(packet.data, offset, tablelen + 3 , flt.Filternr);
+                                sendFilterdata(packet.data, offset, tablelen, flt.Filternr);
                                 return true;
                             }
                         }
