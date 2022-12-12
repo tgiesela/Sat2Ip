@@ -67,7 +67,7 @@ namespace ClientSockets
                 try
                 {
                     _sender.Connect(_remoteEP);
-                    log.Debug(String.Format("Socket connected to {0} - DontFragment: {1}", _sender.RemoteEndPoint.ToString(),_sender.DontFragment.ToString()));
+                    log.Debug(String.Format("Socket connected to {0} - DontFragment: {1}", _remoteEP.ToString(),_sender.DontFragment.ToString()));
                 }
                 catch (SocketException e)
                 {

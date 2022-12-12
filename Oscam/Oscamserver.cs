@@ -94,7 +94,18 @@ namespace Oscam
         private mp2packetqueue m_packetqueue;
         private Payloads m_payloads;
         private bool m_active;
-
+        /* 
+         * Delegates
+         */
+        public delegate void addpid(int pid);
+        public delegate void deletepid(int pid);
+        private addpid m_addpidhandler;
+        private deletepid m_delpidhandler;
+        public void setPidHandlers(addpid addpidhandler, deletepid deletepidhandler)
+        {
+            m_addpidhandler = addpidhandler;
+            m_delpidhandler = deletepidhandler;
+        }
         public Oscamserver(string ipaddress, int port, mp2packetqueue queue)
         {
             m_ipaddress = ipaddress;
@@ -168,6 +179,8 @@ namespace Oscam
                                     , filter.Filtermask[6], filter.Filtermask[7], filter.Filtermask[8], filter.Filtermask[9], filter.Filtermask[10], filter.Filtermask[11]
                                     , filter.Filtermask[12], filter.Filtermask[13], filter.Filtermask[14], filter.Filtermask[15]));
                                 lenprocessed = 65;
+                                if (m_addpidhandler != null) 
+                                    m_addpidhandler(filter.Pid);
                             }
                             break;
                         }
@@ -192,6 +205,8 @@ namespace Oscam
                                     {
                                         filter = flt;
                                         log.Debug(String.Format("DVBAPI_DMX_STOP -> filternr = {0}, pid = {1}", filter.Filternr, filter.Pid));
+                                        if (m_delpidhandler != null)
+                                            m_delpidhandler(pid);
                                         break;
                                     }
                                 }

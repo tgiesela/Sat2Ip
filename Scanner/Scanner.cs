@@ -87,12 +87,12 @@ namespace Sat2Ip
         public Transponder Transponder { get { return m_transponder; } set { m_transponder = value; } }
 
         public int SCANTIMEOUT { get; private set; }
-        public Scanner(int portdata, int portreport, RTSP rtsp)
+        public Scanner(RTSP rtsp)
         {
-            _portdata = portdata;
-            _portreport = portreport;
+            _portdata = rtsp.Startport;
+            _portreport = rtsp.Startport+2;
 
-            reader = new RtpReader(portdata);
+            reader = new RtpReader(_portdata);
 
             this.rtsp = rtsp;
             patreceived = false;
@@ -143,6 +143,7 @@ namespace Sat2Ip
             log.DebugFormat("Scanning transponder complete: {0}, channels: {1}", transponder.frequency, m_pids.Count);
             return m_pids;
         }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         public async Task<FastScanBouquet> scanfast(FastScanLocation location, Transponder tsp)
         {
             fstnetworkreceived = false;
@@ -177,21 +178,25 @@ namespace Sat2Ip
             log.DebugFormat("Scanning transponder complete: {0}, channels: {1}", tsp.frequency, m_pids.Count);
             return m_fstbouquet;
         }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         public async Task<Channel> scanChannel(Channel channel)
         {
-            m_channelscan = true;
             patreceived = false;
             batreceived = true;
             sdtreceived = true;
             catreceived = true;
-            pmtreceived = true;
-            nitreceived = false;
+            pmtreceived = false;
+            channel.Pmtpresent = false;
+            channel.Pmt.Clear();
+            nitreceived = true;
             expectNIT = false;
             m_channelscan = true;
             m_sessionbouquets = new();
             m_sessionnetworks = new();
             payloads = new Payloads(processpayload);
             m_pat = new PAT();
+            m_pids = new();
+            m_pids.Add(channel);
 
             log.DebugFormat("Scanning transponder for PAT: {0}", channel.transponder.frequency);
             Task scantask = ReadData();
@@ -199,7 +204,7 @@ namespace Sat2Ip
             scanquery = m_transponder.getQuery();
             scanquery = scanquery + "&pids=0";
             rtsp.commandSetup(scanquery);
-            rtsp.commandPlay("");
+            rtsp.commandPlay("?addpids=" + channel.Programpid.ToString());
 
             await scantask;
 
@@ -213,7 +218,6 @@ namespace Sat2Ip
                     break;
                 }
             }
-            pmtreceived = false;
             rtsp.commandPlay("?addpids=" + channel.Programpid);
             scantask = ReadData();
             await scantask;
@@ -259,8 +263,10 @@ namespace Sat2Ip
             /* pids is now populated, add pid=17 for BAT and SDT */
             string strpids = "";
             if (expectNIT)
+            {
                 strpids = "16";
-            rtsp.commandPlay("?addpids=" + strpids);
+                rtsp.commandPlay("?addpids=" + strpids);
+            }
         }
         protected void OnPMTReceived(int payloadpid)
         {

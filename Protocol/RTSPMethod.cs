@@ -40,7 +40,7 @@ namespace Sat2Ip
         public RTSPMethod(Uri uri)
         {
            _socket = new SyncClientSocket(System.Net.Dns.GetHostAddresses(uri.Host)[0].ToString(), 554);
-            _cseq = 0;
+            _cseq = 1;
             _majorversion = 1;
             _minorversion = 0;
         }
@@ -56,6 +56,7 @@ namespace Sat2Ip
         }
         public void Invoke()
         {
+            log.Debug(this.Method.ToString() + " " + this.Command.ToString());
             connect();
             StringBuilder request = new StringBuilder();
             request.AppendFormat("{0} rtsp://{1}/{4} RTSP/{2}.{3}\r\n", _method, _socket.IpAddress, _majorversion, _minorversion, _command);

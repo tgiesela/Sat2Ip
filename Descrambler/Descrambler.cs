@@ -42,17 +42,21 @@ namespace Descrambler
         private bool reading;
         private bool writing;
         private Oscamserver? m_oscamserver;
+        private RTSP m_rtsp;
+        private List<int> m_pids;
 
-        public Descrambler(int port, int outputport)
+        public Descrambler(RTSP rtsp)
         {
-            m_port = port;
-            m_outputport = outputport;
+            m_rtsp = rtsp;
+            m_port = rtsp.Startport;
+            m_outputport = rtsp.Startport + 2;
             log.Debug("Start reader on port: " + m_port);
             reader = new RtpReader(m_port);
             int optimalsize = 1024;
             m_oscampackets = new mp2packetqueue(optimalsize);
             m_inputpackets = new Circularqueue(optimalsize);
             payloads = new();
+
         }
         public void processpayload(Payload payload)
         {
@@ -62,11 +66,13 @@ namespace Descrambler
         }
         public void play()
         {
+            m_pids = new List<int>();
             payloads = new Payloads(processpayload);
             inputthread = new Thread(new ThreadStart(ReadData));
             inputthread.Start();
             outputthread = new Thread(new ThreadStart(WriteData));
             outputthread.Start();
+            m_rtsp.commandPlay("");
         }
 
         public void stop()
@@ -74,6 +80,7 @@ namespace Descrambler
             if (!reading && !writing) return; /* Already stopped */
             reading = false;
             writing = false;
+            m_rtsp.commandTeardown("");
             payloads = new();
             if (m_oscamserver != null)
             {
@@ -172,9 +179,37 @@ namespace Descrambler
         {
             if (m_oscampackets == null) throw new Exception("m_oscampackets == null");
             m_oscamserver = new Oscamserver(oscamServer, oscamPort, m_oscampackets);
+            m_oscamserver.setPidHandlers(addpidhandler, deletepidhandler);
             if (m_channel != null)
                 m_oscamserver.Start(m_channel);
         }
+
+        private void deletepidhandler(int pid)
+        {
+            log.DebugFormat("Request to delete pid {0} ({0:X4})", pid);
+            /* 
+             * We currently do not delete pids from the stream, because oscam would add and delete them constantly
+             * 
+            if (m_pids.Contains(pid))
+            {
+                m_rtsp.commandPlay(String.Format("?delpids={0}", pid));
+                m_pids.Remove(pid);
+                log.DebugFormat("Removed pid {0} ({0:X4})", pid);
+            }
+            */
+        }
+
+        private void addpidhandler(int pid)
+        {
+            log.DebugFormat("Request to add pid {0} ({0:X4})", pid);
+            if (!m_pids.Contains(pid))
+            {
+                m_rtsp.commandPlay(String.Format("?addpids={0}", pid));
+                m_pids.Add(pid);
+                log.DebugFormat("Added pid {0} ({0:X4})", pid);
+            }
+        }
+
         public void setChannel(Channel channel)
         {
             m_channel = channel;

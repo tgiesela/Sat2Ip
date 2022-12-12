@@ -35,7 +35,7 @@ namespace Sat2IpGui.SatUtils
             DownloadFrequencies(iniFilename, lnb);
             IniFileNew inifile = new IniFileNew(System.IO.Path.GetFullPath(iniFilename));
             List<Match> matches = inifile.getSections();
-            m_transponders = new List<Transponder>();
+            Transponders = new List<Transponder>();
             if (inifile.getSectionname(matches[0]).Equals("SATTYPE") &&
                 inifile.getSectionname(matches[1]).Equals("DVB"))
             {
@@ -46,7 +46,7 @@ namespace Sat2IpGui.SatUtils
                     string line = inifile.getValue(section, i.ToString());
                     Transponder tsp = extractInfoFromTransponder(line);
                     tsp.diseqcposition = lnb.diseqcposition;
-                    m_transponders.Add(tsp);
+                    Transponders.Add(tsp);
                 }
             }
             return base.datasourceTransponders();

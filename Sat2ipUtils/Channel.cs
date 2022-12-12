@@ -74,11 +74,14 @@ namespace Sat2Ip
         {
             List<int> pids = new List<int>();
             pids.Add(this._programpid);
+            /*
+             * The required CA-pid is added by OSCAM 
             foreach (capid p in this._capids)
             {
                 if (!pids.Contains(p.CA_PID))
                     pids.Add(p.CA_PID);
             }
+            */
             foreach (Sat2Ip.Stream stream in _pmt)
             {
                 pids.Add(stream.Elementary_pid);
@@ -93,8 +96,12 @@ namespace Sat2Ip
         public string getPidString()
         {
             string pids = "0";
-            if (Capids.Count > 0)
+            /*
+             * pid 1 is automatically added by oscam if required
+             * 
+             * if (Capids.Count > 0)
                 pids = pids + ",1";
+            */
             foreach (int p in this.getPids())
             {
                 pids = pids + "," + p.ToString();

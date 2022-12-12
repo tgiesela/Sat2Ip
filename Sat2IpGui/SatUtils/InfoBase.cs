@@ -11,7 +11,8 @@ namespace Sat2IpGui.SatUtils
     public class InfoBase
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-        internal List<Transponder> m_transponders = new();
+        private List<Transponder> m_transponders = new();
+        public List<Transponder> Transponders { get { return m_transponders; } set { m_transponders = value; } }
         public virtual BindingSource datasourceTransponders()
         {
             BindingSource bs = new();

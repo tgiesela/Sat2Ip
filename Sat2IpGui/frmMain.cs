@@ -157,26 +157,23 @@ namespace Sat2IpGui
             {
                 ListBoxItem item = (ListBoxItem)lbChannels.Items[inx];
                 Channel pid = (Channel)item.obj;
-                if (pid.Pmtpresent == false)
-                {
-                    Scanner scanner = new Scanner(rtsp.Startport, rtsp.Endport, rtsp);
-                    Channel channeltask = await scanner.scanChannel(pid);
-                }
+                Scanner scanner = new Scanner(rtsp);
+                pid = await scanner.scanChannel(pid);
                 String stream = pid.getPlayString() + ",17";
                 log.Debug("stream: " + stream);
                 try
                 {
                     if (descrambler == null)
                     {
-                        descrambler = new Descrambler.Descrambler(rtsp.Startport, rtsp.Startport + 2);
+                        descrambler = new Descrambler.Descrambler(rtsp);
                         int oscamport;
-                        Int32.TryParse(config.configitems.OscamPort, out oscamport);
+                        int.TryParse(config.configitems.OscamPort, out oscamport);
                         descrambler.setOscam(config.configitems.OscamServer, oscamport);
                     }
                     else
                     {
                         descrambler.stop();
-                        rtsp.commandTeardown("");
+                        //rtsp.commandTeardown("");
                         System.Threading.Thread.Sleep(1000);
                     }
                     descrambler.setChannel(pid);
@@ -188,7 +185,7 @@ namespace Sat2IpGui
                 }
                 var uri = new Uri(string.Format(@"rtp://{0}:{1}", "127.0.0.1", rtsp.Startport + 2));
                 log.Debug("URI: " + uri.ToString());
-                rtsp.commandPlay("");
+                //rtsp.commandPlay("");
                 descrambler.play();
                 myVlcControl.Show();
                 myVlcControl.Play(uri);
@@ -215,7 +212,6 @@ namespace Sat2IpGui
             if (descrambler != null)
             {
                 descrambler.stop();
-                rtsp.commandTeardown("");
             }
         }
         private void ServerToolStripMenuItem_Click(object sender, EventArgs e)
@@ -283,8 +279,6 @@ namespace Sat2IpGui
         }
         private void myVlcControl_VlcLibDirectoryNeeded(object sender, Vlc.DotNet.Forms.VlcLibDirectoryNeededEventArgs e)
         {
-            var currentAssembly = Assembly.GetEntryAssembly();
-            var currentDirectory = new FileInfo(currentAssembly.Location).DirectoryName;
             e.VlcLibDirectory = new DirectoryInfo(Path.Combine(Environment.GetEnvironmentVariable("ProgramW6432"), @"VideoLan\VLC\"));
 
             if (!e.VlcLibDirectory.Exists)

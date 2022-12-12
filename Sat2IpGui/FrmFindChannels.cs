@@ -32,6 +32,7 @@ namespace Sat2IpGui
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         private Config config = new();
         private List<Transponder> m_transponders;
+        int channelcount = 0;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         public FrmFindChannels()
@@ -149,7 +150,7 @@ namespace Sat2IpGui
                 // rtsp.frontend = rtsp.getFreeTuner();
                 rtsp.frontend = (int)config.configitems.TunerNumber;
             }
-            scanner = new Scanner(rtsp.Startport, rtsp.Endport, rtsp);
+            scanner = new Scanner(rtsp);
             if (m_LNB != null)
             {
                 scanner.networks = m_LNB.networks;
@@ -178,6 +179,7 @@ namespace Sat2IpGui
                 config.save();
             }
 
+            channelcount = 0;
             if (cbScanAll.Checked)
             {
                 if (cmbLNB.SelectedIndex < 0)
@@ -186,27 +188,24 @@ namespace Sat2IpGui
                     btnScan.Enabled = true;
                     return;
                 }
-                int channelcount = 0;
-                for (int i = 0; i < cmbTransponder.Items.Count && scanning; i++)
+                /* We do not use the combobox, but we use the available transponders */
+                List<Transponder> scanned = new();
+                List<Transponder> alltransponders = new();
+                scanned.AddRange(m_satinfo.Transponders);
+                foreach (Transponder tsp in scanned)
                 {
-                    Transponder tsp = cmbTransponder.Items[i] as Transponder;
-                    txtTransponder.Text = tsp.frequency.ToString();
-                    List<Channel> lChannels = new List<Channel>();
-                    await scanChannelsAsync(scanner, lChannels, tsp);
-                    channelcount += lChannels.Count;
-                    txtChannels.Text = channelcount.ToString();
-                    this.Update();
-                    if (lChannels.Count > 0)
+                    if (scanning)
+                        await scantransponder(tsp);
+                }
+                alltransponders.AddRange(m_satinfo.Transponders);
+                foreach (Transponder tsp in alltransponders)
+                {
+                    if (scanned.Contains(tsp))
+                        continue;
+                    else
                     {
-                        m_LNB.networks = scanner.networks;
-                        m_LNB.bouquets = scanner.bouquets;
-                        m_satinfo.addTranspondersFromNit(scanner.networks, txtNetworkID.Text);
-                        cmbTransponder.DataSource = m_satinfo.updateDatasourceTransponders();
-                        cmbTransponder.DisplayMember = "displayName";
-                        cmbTransponder.ValueMember = "frequency";
-                        cmbTransponder.SelectedItem = tsp;
-                        m_LNB.transponders = m_satinfo.m_transponders;
-                        m_LNB.setTransponder(tsp, lChannels);
+                        if (scanning)
+                            await scantransponder(tsp);
                     }
                 }
             }
@@ -214,22 +213,8 @@ namespace Sat2IpGui
             {
                 if (cmbLNB.SelectedIndex >= 0 && cmbTransponder.SelectedIndex >= 0)
                 {
-                    List<Channel> lChannels = new List<Channel>();
                     Transponder tsp = cmbTransponder.SelectedItem as Transponder;
-                    await scanChannelsAsync(scanner, lChannels, tsp);
-    
-                    if (lChannels.Count > 0)
-                    {
-                        m_LNB.networks = scanner.networks;
-                        m_LNB.bouquets = scanner.bouquets;
-                        m_satinfo.addTranspondersFromNit(scanner.networks, txtNetworkID.Text);
-                        cmbTransponder.DataSource = m_satinfo.updateDatasourceTransponders();
-                        cmbTransponder.DisplayMember = "displayName";
-                        cmbTransponder.ValueMember = "frequency";
-                        cmbTransponder.SelectedItem = tsp;
-                        m_LNB.transponders = m_satinfo.m_transponders;
-                        m_LNB.setTransponder(tsp, lChannels);
-                    }
+                    await scantransponder(tsp);
                 }
                 else
                 {
@@ -302,6 +287,27 @@ namespace Sat2IpGui
             btnScan.Enabled = true;
             btnClose.Enabled = true;
             btnStop.Enabled = false;
+        }
+        private async Task scantransponder(Transponder tsp)
+        {
+            txtTransponder.Text = tsp.frequency.ToString();
+            List<Channel> lChannels = new();
+            await scanChannelsAsync(scanner, lChannels, tsp);
+            channelcount += lChannels.Count;
+            txtChannels.Text = channelcount.ToString();
+            this.Update();
+            if (lChannels.Count > 0)
+            {
+                m_LNB.networks = scanner.networks;
+                m_LNB.bouquets = scanner.bouquets;
+                m_satinfo.addTranspondersFromNit(scanner.networks, txtNetworkID.Text);
+                cmbTransponder.DataSource = m_satinfo.updateDatasourceTransponders();
+                cmbTransponder.DisplayMember = "displayName";
+                cmbTransponder.ValueMember = "frequency";
+                cmbTransponder.SelectedItem = tsp;
+                m_LNB.transponders = m_satinfo.Transponders;
+                m_LNB.setTransponder(tsp, lChannels);
+            }
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]

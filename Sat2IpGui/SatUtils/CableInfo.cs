@@ -39,11 +39,11 @@ namespace Sat2IpGui.SatUtils
                 throw new Exception("CableProvider not set!");
             IniFileNew inifile = new IniFileNew(currentProvider.file.FullName);
             List<Match> matches = inifile.getSections();
-            m_transponders.Clear();
+            Transponders.Clear();
             foreach (Match match in matches)
             {
                 Transponder tsp = extractInfoFromInifile(inifile, match);
-                m_transponders.Add(tsp);
+                Transponders.Add(tsp);
             }
             return base.datasourceTransponders();
         }
